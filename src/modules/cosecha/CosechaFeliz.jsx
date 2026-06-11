@@ -250,6 +250,7 @@ export default function CosechaFeliz() {
         <AddTokenForm
           onAdd={(token) => { cosecha_addToken(token); setShowAddForm(false) }}
           onCancel={() => setShowAddForm(false)}
+          excludeSymbols={cosecha.map((t) => t.symbol)}
         />
       )}
 

@@ -243,6 +243,7 @@ export default function TurboCiclo() {
         <AddTokenForm
           onAdd={(token) => { turbo_addToken(token); setShowAddForm(false) }}
           onCancel={() => setShowAddForm(false)}
+          excludeSymbols={turbo.map((t) => t.symbol)}
         />
       )}
 
