@@ -5,8 +5,11 @@ import { mockFearGreed } from '../../data/mockData'
 import MarketTable from './MarketTable'
 
 export default function Dashboard() {
-  const { balanceTotal, cofre, cosecha, cosechaValor, pricesStatus, pricesUpdated } =
-    usePortfolio()
+  const {
+    balanceTotal, cofre, cosecha, cosechaValor,
+    turboValor, pnl24h,
+    pricesStatus, pricesUpdated,
+  } = usePortfolio()
 
   const cosechaPnlPct =
     cosecha.reduce((s, t) => s + t.costo, 0) > 0
@@ -39,19 +42,25 @@ export default function Dashboard() {
         <p className="text-4xl font-extrabold mt-1 tabular-nums">
           {fmtUsd(balanceTotal)}
         </p>
-        <div className="flex gap-4 mt-3 text-xs text-gray-400">
-          <span>
-            Cofre:{' '}
-            <span className="text-gray-200 font-medium">
-              {fmtUsd(cofre.valorActual)}
+
+        {/* PnL 24h */}
+        {pnl24h !== 0 && (
+          <div className="flex items-center gap-2 mt-2">
+            <span className={`text-sm font-semibold tabular-nums ${pnl24h >= 0 ? 'text-profit' : 'text-loss'}`}>
+              {pnl24h >= 0 ? '+' : ''}{fmtUsd(pnl24h)} hoy
             </span>
-          </span>
-          <span>
-            Cosecha:{' '}
-            <span className="text-gray-200 font-medium">
-              {fmtUsd(cosechaValor)}
+            <span className={`chip text-xs ${pnl24h >= 0 ? 'bg-profit/15 text-profit' : 'bg-loss/15 text-loss'}`}>
+              24h
             </span>
-          </span>
+          </div>
+        )}
+
+        <div className="flex gap-3 mt-3 text-xs text-gray-400 flex-wrap">
+          <span>🔒 <span className="text-gray-200 font-medium">{fmtUsd(cofre.valorActual)}</span></span>
+          <span>🌱 <span className="text-gray-200 font-medium">{fmtUsd(cosechaValor)}</span></span>
+          {turboValor > 0 && (
+            <span>⚡ <span className="text-gray-200 font-medium">{fmtUsd(turboValor)}</span></span>
+          )}
         </div>
         <p className="text-[10px] text-gray-600 mt-3 flex items-center gap-1.5">
           {pricesStatus === 'live' ? (

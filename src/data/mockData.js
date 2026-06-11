@@ -39,101 +39,23 @@ export const mockCofreCompras = [
   { id: 4, fecha: '2025-02-20', usd: 600, precioBtc: 95000 },
 ]
 
-// ---------- MÓDULO 2: La Cosecha Feliz (altcoins) ----------
-// Clasificación según estrategia:
-//   categoria 'nucleo'  → calidad + narrativa con potencial de ciclo (hold).
-//   categoria 'spec'    → especulativo / cap baja (posición pequeña, máx ~10-15%).
-//   narrativa           → para vigilar la concentración (ej. demasiado AI/DePIN).
-export const mockCosechaTokens = [
+// ---------- MÓDULO 2: La Cosecha Feliz ----------
+// Arranca VACÍO. El usuario agrega tokens manualmente con botón "+".
+export const mockCosechaTokens = []
+
+// ---------- MÓDULO 3: El Turbo-Ciclo — tokens de trading ----------
+// Misma estructura que Cosecha. SOL trasladado aquí como ejemplo inicial.
+export const mockTurboTokens = [
   {
     symbol: 'SOL',
     nombre: 'Solana',
+    exchange: 'Binance',
     categoria: 'nucleo',
     narrativa: 'L1',
     compras: [
       { id: 1, fecha: '2024-06-01', cantidad: 5, precio: 140 },
       { id: 2, fecha: '2024-09-12', cantidad: 3, precio: 128 },
     ],
-  },
-  {
-    symbol: 'BNB',
-    nombre: 'BNB',
-    categoria: 'nucleo',
-    narrativa: 'Exchange',
-    compras: [{ id: 1, fecha: '2024-07-05', cantidad: 1.2, precio: 540 }],
-  },
-  {
-    symbol: 'NEAR',
-    nombre: 'NEAR Protocol',
-    categoria: 'nucleo',
-    narrativa: 'L1 / AI',
-    compras: [{ id: 1, fecha: '2024-08-18', cantidad: 120, precio: 5.4 }],
-  },
-  {
-    symbol: 'AAVE',
-    nombre: 'Aave',
-    categoria: 'nucleo',
-    narrativa: 'DeFi',
-    compras: [{ id: 1, fecha: '2024-09-02', cantidad: 4, precio: 118 }],
-  },
-  {
-    symbol: 'RENDER',
-    nombre: 'Render',
-    categoria: 'nucleo',
-    narrativa: 'AI / DePIN',
-    compras: [{ id: 1, fecha: '2024-06-22', cantidad: 60, precio: 7.2 }],
-  },
-  {
-    symbol: 'FET',
-    nombre: 'Fetch.ai',
-    categoria: 'nucleo',
-    narrativa: 'AI / DePIN',
-    compras: [
-      { id: 1, fecha: '2024-05-20', cantidad: 400, precio: 1.85 },
-      { id: 2, fecha: '2024-08-01', cantidad: 600, precio: 1.1 },
-    ],
-  },
-  {
-    symbol: 'AR',
-    nombre: 'Arweave',
-    categoria: 'nucleo',
-    narrativa: 'AI / DePIN',
-    compras: [{ id: 1, fecha: '2024-07-28', cantidad: 12, precio: 24 }],
-  },
-  {
-    symbol: 'THETA',
-    nombre: 'Theta Network',
-    categoria: 'nucleo',
-    narrativa: 'AI / DePIN',
-    compras: [{ id: 1, fecha: '2024-08-10', cantidad: 300, precio: 1.8 }],
-  },
-  {
-    symbol: 'AKT',
-    nombre: 'Akash Network',
-    categoria: 'spec',
-    narrativa: 'AI / DePIN',
-    compras: [{ id: 1, fecha: '2024-09-15', cantidad: 80, precio: 3.6 }],
-  },
-  {
-    symbol: 'VET',
-    nombre: 'VeChain',
-    categoria: 'spec',
-    narrativa: 'Supply-chain',
-    compras: [{ id: 1, fecha: '2024-07-01', cantidad: 8000, precio: 0.038 }],
-  },
-  {
-    symbol: 'RON',
-    nombre: 'Ronin',
-    categoria: 'spec',
-    narrativa: 'Gaming',
-    compras: [{ id: 1, fecha: '2024-07-10', cantidad: 300, precio: 2.5 }],
-  },
-  {
-    symbol: 'KCS',
-    nombre: 'KuCoin Token',
-    categoria: 'spec',
-    narrativa: 'Exchange',
-    compras: [{ id: 1, fecha: '2024-08-25', cantidad: 25, precio: 9.8 }],
   },
 ]
 
