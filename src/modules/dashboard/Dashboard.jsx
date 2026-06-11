@@ -37,7 +37,8 @@ function ModuleCard({ to, icon, color, name, subtitle, value, pnlPct }) {
 }
 
 export default function Dashboard() {
-  const { balanceTotal, cofre, cosecha, cosechaValor } = usePortfolio()
+  const { balanceTotal, cofre, cosecha, cosechaValor, pricesStatus, pricesUpdated } =
+    usePortfolio()
 
   const cosechaPnlPct =
     cosecha.reduce((s, t) => s + t.costo, 0) > 0
@@ -84,8 +85,29 @@ export default function Dashboard() {
             </span>
           </span>
         </div>
-        <p className="text-[10px] text-gray-600 mt-3">
-          * Datos simulados (Fase 1). No conectado a exchanges reales.
+        <p className="text-[10px] text-gray-600 mt-3 flex items-center gap-1.5">
+          {pricesStatus === 'live' ? (
+            <>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-profit animate-pulse" />
+              Precios en vivo · Binance
+              {pricesUpdated &&
+                ` · ${pricesUpdated.toLocaleTimeString('es-MX', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}`}
+            </>
+          ) : pricesStatus === 'error' ? (
+            <>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-loss" />
+              Sin conexión a Binance · usando precios simulados
+            </>
+          ) : (
+            <>
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-500" />
+              Cargando precios…
+            </>
+          )}
         </p>
       </section>
 

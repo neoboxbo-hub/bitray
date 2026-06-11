@@ -11,8 +11,11 @@ import {
   mockCosechaTokens,
 } from '../data/mockData'
 import { calcCofre, calcToken } from '../utils/calculations'
+import { fetchPrices } from '../services/prices'
 
 const PortfolioContext = createContext(null)
+
+const REFRESH_MS = 15000 // refresco de precios en vivo
 
 // Carga inicial: localStorage si existe, si no el mock. (Fase 2 → Supabase)
 const load = (key, fallback) => {
@@ -26,13 +29,38 @@ const load = (key, fallback) => {
 
 // Estado central simulado. En la Fase 2 esto se reemplaza por Supabase/API.
 export function PortfolioProvider({ children }) {
-  const [prices] = useState(mockPrices)
+  const [prices, setPrices] = useState(mockPrices)
+  const [pricesStatus, setPricesStatus] = useState('mock') // 'mock' | 'live' | 'error'
+  const [pricesUpdated, setPricesUpdated] = useState(null)
   const [cofreCompras, setCofreCompras] = useState(() =>
     load('bitray.cofre', mockCofreCompras),
   )
   const [cosechaTokens, setCosechaTokens] = useState(() =>
     load('bitray.cosecha', mockCosechaTokens),
   )
+
+  // Precios en vivo de Binance (con auto-refresco y fallback a mock).
+  useEffect(() => {
+    let active = true
+    const tick = async () => {
+      try {
+        const p = await fetchPrices()
+        if (!active) return
+        setPrices(p)
+        setPricesStatus('live')
+        setPricesUpdated(new Date())
+      } catch (e) {
+        if (active) setPricesStatus((s) => (s === 'live' ? 'live' : 'error'))
+        console.warn('No se pudieron cargar precios de Binance:', e.message)
+      }
+    }
+    tick()
+    const id = setInterval(tick, REFRESH_MS)
+    return () => {
+      active = false
+      clearInterval(id)
+    }
+  }, [])
 
   // Persistencia automática al cambiar.
   useEffect(() => {
@@ -119,6 +147,8 @@ export function PortfolioProvider({ children }) {
 
   const value = {
     prices,
+    pricesStatus,
+    pricesUpdated,
     cofre,
     cofreCompras,
     addCompraCofre,
