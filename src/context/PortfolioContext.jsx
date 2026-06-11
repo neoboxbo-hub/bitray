@@ -69,7 +69,18 @@ function makeTokenActions(setter) {
       prev.map((t) => (t.symbol === symbol ? { ...t, compras: [] } : t)),
     )
 
-  return { addToken, removeToken, addCompra, updateCompra, deleteCompra, clearCompras }
+  // Permite fijar un precio manual que sobreescribe el precio de Binance.
+  // Pasar null quita la sobreescritura y vuelve al precio en vivo.
+  const setPrecioManual = (symbol, precio) =>
+    setter((prev) =>
+      prev.map((t) =>
+        t.symbol === symbol
+          ? { ...t, precioManual: precio === null ? undefined : Number(precio) }
+          : t,
+      ),
+    )
+
+  return { addToken, removeToken, addCompra, updateCompra, deleteCompra, clearCompras, setPrecioManual }
 }
 
 export function PortfolioProvider({ children }) {
@@ -136,20 +147,18 @@ export function PortfolioProvider({ children }) {
   )
 
   const cosecha = useMemo(
-    () => cosechaTokens.map((t) => ({
-      ...t,
-      ...calcToken(t.compras, prices[t.symbol] ?? 0),
-      precioActual: prices[t.symbol] ?? 0,
-    })),
+    () => cosechaTokens.map((t) => {
+      const p = t.precioManual ?? prices[t.symbol] ?? 0
+      return { ...t, ...calcToken(t.compras, p), precioActual: p }
+    }),
     [cosechaTokens, prices],
   )
 
   const turbo = useMemo(
-    () => turboTokens.map((t) => ({
-      ...t,
-      ...calcToken(t.compras, prices[t.symbol] ?? 0),
-      precioActual: prices[t.symbol] ?? 0,
-    })),
+    () => turboTokens.map((t) => {
+      const p = t.precioManual ?? prices[t.symbol] ?? 0
+      return { ...t, ...calcToken(t.compras, p), precioActual: p }
+    }),
     [turboTokens, prices],
   )
 

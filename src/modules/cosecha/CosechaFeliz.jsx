@@ -14,7 +14,7 @@ const EXCHANGE_COLOR = {
   Otro:    'text-gray-400   bg-gray-400/10   border-gray-400/30',
 }
 
-function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken }) {
+function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken, onSetPrecio }) {
   // formMode: null | 'compra' | 'venta'
   const [formMode, setFormMode]           = useState(null)
   const [showHistory, setShowHistory]     = useState(false)
@@ -22,6 +22,8 @@ function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken })
   const [confirmRemove, setConfirmRemove] = useState(false)
   const [cantidad, setCantidad]           = useState('')
   const [precio, setPrecio]               = useState(token.precioActual?.toString() || '')
+  const [editingPrice, setEditingPrice]   = useState(false)
+  const [precioInput, setPrecioInput]     = useState('')
 
   const up = token.pnlPct >= 0
   const exColor = EXCHANGE_COLOR[token.exchange] || EXCHANGE_COLOR['Otro']
@@ -87,11 +89,42 @@ function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken })
               {fmtUsd(token.precioPromedio, 4)}
             </p>
           </div>
-          <div className="bg-ink-800 rounded-lg py-2">
-            <p className="text-[10px] text-gray-500">Precio actual</p>
-            <p className="text-sm font-semibold tabular-nums">
-              {fmtUsd(token.precioActual, 4)}
+          <div className="bg-ink-800 rounded-lg py-2 relative">
+            <p className="text-[10px] text-gray-500 flex items-center justify-center gap-1">
+              Precio actual
+              {token.precioManual && (
+                <span className="text-yellow-400 text-[9px]">✎manual</span>
+              )}
             </p>
+            {editingPrice ? (
+              <div className="flex items-center gap-1 px-2">
+                <input
+                  type="number" inputMode="decimal"
+                  className="field py-0.5 text-xs text-center w-full"
+                  placeholder="0.00"
+                  value={precioInput}
+                  onChange={(e) => setPrecioInput(e.target.value)}
+                  autoFocus
+                />
+                <button
+                  onClick={() => {
+                    const v = parseFloat(precioInput)
+                    if (v > 0) onSetPrecio(token.symbol, v)
+                    setEditingPrice(false)
+                  }}
+                  className="text-profit text-xs font-bold shrink-0">✓</button>
+                <button
+                  onClick={() => { onSetPrecio(token.symbol, null); setEditingPrice(false) }}
+                  className="text-gray-500 text-xs shrink-0">✕</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setPrecioInput(token.precioActual?.toString() || ''); setEditingPrice(true) }}
+                className="text-sm font-semibold tabular-nums w-full active:opacity-70"
+              >
+                {fmtUsd(token.precioActual, 4)}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -213,6 +246,7 @@ export default function CosechaFeliz() {
     cosecha_addToken, cosecha_removeToken,
     cosecha_addCompra, cosecha_updateCompra,
     cosecha_deleteCompra, cosecha_clearCompras,
+    cosecha_setPrecioManual,
   } = usePortfolio()
 
   const [showAddForm, setShowAddForm] = useState(false)
@@ -288,6 +322,7 @@ export default function CosechaFeliz() {
               onUpdate={cosecha_updateCompra}
               onDelete={cosecha_deleteCompra}
               onRemoveToken={cosecha_removeToken}
+              onSetPrecio={cosecha_setPrecioManual}
             />
           ))}
         </div>
