@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { fmtUsd, fmtNum, fmtPct } from '../../utils/calculations'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
+import TpSlPanel from '../../components/shared/TpSlPanel'
 
 // Tarjeta por token con precio promedio (punto de equilibrio) y PnL flotante.
 function TokenCard({ token, onAdd, onClear, onUpdate, onDelete }) {
@@ -88,6 +89,16 @@ function TokenCard({ token, onAdd, onClear, onUpdate, onDelete }) {
           </p>
         </div>
       </div>
+
+      {/* Panel TP / Stop Loss basado en precio promedio y capital real */}
+      {token.compras.length > 0 && (
+        <TpSlPanel
+          precioEntrada={token.precioPromedio}
+          capital={token.costo}
+          precioActual={token.precioActual}
+          symbol={token.symbol}
+        />
+      )}
 
       {/* Ver / ocultar compras individuales */}
       {token.compras.length > 0 && (

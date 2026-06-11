@@ -70,23 +70,22 @@ export default function MarketTable() {
       {/* Tabla */}
       <div className="card overflow-hidden">
         {/* Cabecera */}
-        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 px-3 py-2 border-b border-ink-600">
+        <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-2 border-b border-ink-600">
           <span className="text-[10px] uppercase tracking-wide text-gray-500">Token</span>
-          <span className="text-[10px] uppercase tracking-wide text-gray-500 text-right w-20">Precio</span>
-          <span className="text-[10px] uppercase tracking-wide text-gray-500 text-right w-12">1h</span>
-          <span className="text-[10px] uppercase tracking-wide text-gray-500 text-right w-12">24h</span>
+          <span className="text-[10px] uppercase tracking-wide text-gray-500 text-right w-24">Precio</span>
+          <span className="text-[10px] uppercase tracking-wide text-gray-500 text-right w-14">24h</span>
         </div>
 
         {/* Filas */}
         {WATCH.map((t, i) => {
-          const price   = prices[t.symbol]
-          const change  = changes[t.symbol]
-          const isLast  = i === WATCH.length - 1
+          const price  = prices[t.symbol]
+          const change = changes[t.symbol]
+          const isLast = i === WATCH.length - 1
 
           return (
             <div
               key={t.symbol}
-              className={`grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center px-3 py-2.5 ${
+              className={`grid grid-cols-[1fr_auto_auto] gap-x-3 items-center px-3 py-2.5 ${
                 !isLast ? 'border-b border-ink-600/50' : ''
               }`}
             >
@@ -100,7 +99,7 @@ export default function MarketTable() {
               </div>
 
               {/* Precio */}
-              <div className="text-right w-20">
+              <div className="text-right w-24">
                 <p className="text-sm tabular-nums font-medium">
                   {price != null
                     ? price >= 1
@@ -110,13 +109,8 @@ export default function MarketTable() {
                 </p>
               </div>
 
-              {/* 1h */}
-              <div className="text-right w-12 text-xs">
-                <Pct value={change?.h1 ?? null} />
-              </div>
-
               {/* 24h */}
-              <div className="text-right w-12 text-xs">
+              <div className="text-right w-14 text-xs">
                 <Pct value={change?.h24 ?? null} />
               </div>
             </div>
@@ -125,8 +119,7 @@ export default function MarketTable() {
       </div>
 
       <p className="text-[10px] text-gray-600 mt-2 text-center">
-        🔒 Cofre · 🌱 Cosecha · ⚡ Turbo &nbsp;|&nbsp;
-        Precios Binance spot · refresca cada 15s
+        🔒 Cofre · 🌱 Cosecha · ⚡ Turbo &nbsp;|&nbsp; Binance spot · 15s
       </p>
     </section>
   )
