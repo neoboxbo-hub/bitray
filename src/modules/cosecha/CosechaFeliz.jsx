@@ -4,6 +4,7 @@ import { fmtUsd, fmtNum, fmtPct } from '../../utils/calculations'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import TpSlPanel from '../../components/shared/TpSlPanel'
 import AddTokenForm from '../../components/shared/AddTokenForm'
+import TransactionHistory from '../../components/shared/TransactionHistory'
 
 const EXCHANGE_COLOR = {
   Binance: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
@@ -14,45 +15,45 @@ const EXCHANGE_COLOR = {
 }
 
 function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken }) {
-  const [open, setOpen]           = useState(false)
-  const [showList, setShowList]   = useState(false)
-  const [confirmClear, setConfirmClear] = useState(false)
+  // formMode: null | 'compra' | 'venta'
+  const [formMode, setFormMode]           = useState(null)
+  const [showHistory, setShowHistory]     = useState(false)
+  const [confirmClear, setConfirmClear]   = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
-  const [confirmDel, setConfirmDel]   = useState(null)
-  const [cantidad, setCantidad]   = useState('')
-  const [precio, setPrecio]       = useState(token.precioActual?.toString() || '')
-  const [editId, setEditId]       = useState(null)
-  const [editForm, setEditForm]   = useState({ cantidad: '', precio: '' })
+  const [cantidad, setCantidad]           = useState('')
+  const [precio, setPrecio]               = useState(token.precioActual?.toString() || '')
 
   const up = token.pnlPct >= 0
   const exColor = EXCHANGE_COLOR[token.exchange] || EXCHANGE_COLOR['Otro']
+  // token.compras almacena TODAS las transacciones (compras + ventas)
+  const transacciones = token.compras
+  const totalTx = transacciones.length
+  const tieneVentas = transacciones.some((t) => t.tipo === 'venta')
+
+  const openForm = (mode) => {
+    setFormMode(mode)
+    setPrecio(token.precioActual?.toString() || '')
+    setCantidad('')
+  }
 
   const submit = (e) => {
     e.preventDefault()
     const cant = parseFloat(cantidad)
     const pr   = parseFloat(precio)
     if (!cant || !pr) return
-    onAdd(token.symbol, { fecha: new Date().toISOString().slice(0, 10), cantidad: cant, precio: pr })
+    onAdd(token.symbol, {
+      fecha: new Date().toISOString().slice(0, 10),
+      cantidad: cant,
+      precio: pr,
+      tipo: formMode,
+    })
     setCantidad('')
-    setOpen(false)
-  }
-
-  const startEdit = (c) => {
-    setEditId(c.id)
-    setEditForm({ cantidad: c.cantidad.toString(), precio: c.precio.toString() })
-  }
-
-  const saveEdit = () => {
-    const cant = parseFloat(editForm.cantidad)
-    const pr   = parseFloat(editForm.precio)
-    if (!cant || !pr) return
-    onUpdate(token.symbol, editId, { cantidad: cant, precio: pr })
-    setEditId(null)
+    setFormMode(null)
   }
 
   return (
     <div className="card p-4">
-      {/* Cabecera del token */}
+      {/* Cabecera */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center flex-wrap gap-1.5">
@@ -77,11 +78,11 @@ function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken })
         </div>
       </div>
 
-      {/* Equilibrio y precio actual */}
-      {token.compras.length > 0 && (
+      {/* Equilibrio / precio actual */}
+      {totalTx > 0 && (
         <div className="grid grid-cols-2 gap-2 mt-3 text-center">
           <div className="bg-ink-800 rounded-lg py-2">
-            <p className="text-[10px] text-gray-500">Equilibrio (prom.)</p>
+            <p className="text-[10px] text-gray-500">Entrada (prom.)</p>
             <p className="text-sm font-semibold tabular-nums">
               {fmtUsd(token.precioPromedio, 4)}
             </p>
@@ -95,8 +96,20 @@ function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken })
         </div>
       )}
 
+      {/* PnL realizado (solo cuando hay ventas) */}
+      {tieneVentas && (
+        <div className="mt-2 bg-ink-800 rounded-lg px-3 py-2 flex justify-between items-center">
+          <p className="text-[11px] text-gray-500">PnL Realizado</p>
+          <p className={`text-sm font-semibold tabular-nums ${
+            token.pnlRealizado >= 0 ? 'text-profit' : 'text-loss'
+          }`}>
+            {token.pnlRealizado >= 0 ? '+' : ''}{fmtUsd(token.pnlRealizado)}
+          </p>
+        </div>
+      )}
+
       {/* Panel TP / Stop Loss */}
-      {token.compras.length > 0 && (
+      {totalTx > 0 && (
         <TpSlPanel
           precioEntrada={token.precioPromedio}
           capital={token.costo}
@@ -105,106 +118,91 @@ function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken })
         />
       )}
 
-      {/* Toggle lista de compras */}
-      {token.compras.length > 0 && (
+      {/* Toggle historial */}
+      {totalTx > 0 && (
         <button
-          onClick={() => setShowList((v) => !v)}
-          className="w-full mt-2 text-xs font-medium text-gray-400 active:text-gray-200 py-1"
+          onClick={() => setShowHistory((v) => !v)}
+          className="w-full mt-2 text-xs font-medium text-gray-400 active:text-gray-200 py-1.5 flex items-center justify-center gap-1.5"
         >
-          {showList ? '▲ Ocultar compras' : `▼ Ver ${token.compras.length} compra(s)`}
+          <span>📋</span>
+          <span>{showHistory ? 'Ocultar historial' : `Ver historial (${totalTx})`}</span>
+          <span>{showHistory ? '▲' : '▼'}</span>
         </button>
       )}
 
-      {/* Lista de compras individuales */}
-      {showList && (
-        <ul className="mt-2 space-y-1.5">
-          {token.compras.map((c) =>
-            editId === c.id ? (
-              <li key={c.id} className="bg-ink-800 rounded-lg p-2 space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <input type="number" inputMode="decimal" className="field py-1.5 text-sm"
-                    placeholder="Cantidad" value={editForm.cantidad}
-                    onChange={(e) => setEditForm({ ...editForm, cantidad: e.target.value })} />
-                  <input type="number" inputMode="decimal" className="field py-1.5 text-sm"
-                    placeholder="Precio" value={editForm.precio}
-                    onChange={(e) => setEditForm({ ...editForm, precio: e.target.value })} />
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setEditId(null)}
-                    className="flex-1 py-1.5 rounded-lg border border-ink-600 text-gray-400 text-xs font-semibold">
-                    Cancelar
-                  </button>
-                  <button onClick={saveEdit} className="btn-primary flex-1 py-1.5 text-xs">
-                    Guardar
-                  </button>
-                </div>
-              </li>
-            ) : (
-              <li key={c.id} className="flex items-center justify-between gap-2 bg-ink-800 rounded-lg px-3 py-2 text-sm">
-                <div className="min-w-0">
-                  <p className="tabular-nums">{fmtNum(c.cantidad, 4)} @ {fmtUsd(c.precio, 4)}</p>
-                  <p className="text-[11px] text-gray-500">{c.fecha}</p>
-                </div>
-                <div className="flex gap-1 shrink-0">
-                  <button onClick={() => startEdit(c)}
-                    className="h-7 w-7 rounded-md border border-ink-600 text-gray-400 active:text-brand text-xs">✏️</button>
-                  <button onClick={() => setConfirmDel(c.id)}
-                    className="h-7 w-7 rounded-md border border-ink-600 text-loss/80 active:text-loss text-xs">🗑</button>
-                </div>
-              </li>
-            )
-          )}
-        </ul>
+      {/* Historial unificado */}
+      {showHistory && (
+        <TransactionHistory
+          transacciones={transacciones}
+          precioPromedio={token.precioPromedio}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+          symbol={token.symbol}
+        />
       )}
 
-      {/* Botones de acción */}
-      {!open ? (
+      {/* Botones de acción / Formulario */}
+      {formMode === null ? (
         <div className="flex gap-2 mt-3">
-          <button onClick={() => setOpen(true)}
-            className="flex-1 py-2 rounded-lg border border-ink-600 text-sm font-semibold text-gray-300 active:scale-[0.99]">
-            + Registrar compra
+          <button onClick={() => openForm('compra')}
+            className="flex-1 py-2 rounded-lg border border-ink-600 text-sm font-semibold text-profit/80 active:scale-[0.99]">
+            ▲ Compra
           </button>
-          {token.compras.length > 0 && (
+          <button onClick={() => openForm('venta')}
+            className="flex-1 py-2 rounded-lg border border-ink-600 text-sm font-semibold text-loss/80 active:scale-[0.99]">
+            ▼ Venta
+          </button>
+          {totalTx > 0 && (
             <button onClick={() => setConfirmClear(true)}
-              className="px-3 py-2 rounded-lg border border-ink-600 text-loss/80 active:text-loss">🗑</button>
+              className="px-3 py-2 rounded-lg border border-ink-600 text-gray-500 active:text-loss">🗑</button>
           )}
           <button onClick={() => setConfirmRemove(true)}
             className="px-3 py-2 rounded-lg border border-ink-600 text-gray-500 active:text-loss text-sm">✕</button>
         </div>
       ) : (
         <form onSubmit={submit} className="mt-3 space-y-2">
+          <p className={`text-xs font-semibold uppercase tracking-wide ${
+            formMode === 'compra' ? 'text-profit' : 'text-loss'
+          }`}>
+            {formMode === 'compra' ? '▲ Registrar compra' : '▼ Registrar venta'}
+          </p>
+          <input type="date" className="field py-2 text-sm"
+            defaultValue={new Date().toISOString().slice(0, 10)} />
           <div className="grid grid-cols-2 gap-2">
             <input type="number" inputMode="decimal" className="field py-2" placeholder="Cantidad"
-              value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
+              value={cantidad} onChange={(e) => setCantidad(e.target.value)} autoFocus />
             <input type="number" inputMode="decimal" className="field py-2" placeholder="Precio"
               value={precio} onChange={(e) => setPrecio(e.target.value)} />
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={() => setOpen(false)}
-              className="flex-1 py-2 rounded-lg border border-ink-600 text-gray-400 text-sm font-semibold">Cancelar</button>
-            <button type="submit" className="btn-primary flex-1 py-2 text-sm">Guardar</button>
+            <button type="button" onClick={() => setFormMode(null)}
+              className="flex-1 py-2 rounded-lg border border-ink-600 text-gray-400 text-sm font-semibold">
+              Cancelar
+            </button>
+            <button type="submit"
+              className={`flex-1 py-2 rounded-xl text-sm font-bold ${
+                formMode === 'compra'
+                  ? 'bg-profit/20 text-profit border border-profit/40'
+                  : 'bg-loss/20 text-loss border border-loss/40'
+              }`}>
+              Guardar {formMode}
+            </button>
           </div>
         </form>
       )}
 
       {/* Diálogos de confirmación */}
-      <ConfirmDialog open={confirmClear} title={`¿Limpiar compras de ${token.symbol}?`}
-        message="Se borran todas las compras. El precio promedio se resetea."
+      <ConfirmDialog open={confirmClear} title={`¿Limpiar historial de ${token.symbol}?`}
+        message="Se borran TODAS las transacciones (compras y ventas)."
         confirmText="Sí, limpiar"
         onConfirm={() => { onClear(token.symbol); setConfirmClear(false) }}
         onCancel={() => setConfirmClear(false)} />
 
       <ConfirmDialog open={confirmRemove} title={`¿Eliminar ${token.symbol} de la Cosecha?`}
-        message="Se eliminará el token y todas sus compras registradas."
+        message="Se eliminará el token y todas sus transacciones."
         confirmText="Sí, eliminar"
         onConfirm={() => { onRemoveToken(token.symbol); setConfirmRemove(false) }}
         onCancel={() => setConfirmRemove(false)} />
-
-      <ConfirmDialog open={confirmDel !== null} title="¿Eliminar esta compra?"
-        message="Solo se elimina este registro. El promedio se recalcula."
-        confirmText="Sí, eliminar"
-        onConfirm={() => { onDelete(token.symbol, confirmDel); setConfirmDel(null) }}
-        onCancel={() => setConfirmDel(null)} />
     </div>
   )
 }
@@ -275,7 +273,9 @@ export default function CosechaFeliz() {
         <div className="card p-8 text-center space-y-3">
           <p className="text-4xl">🌱</p>
           <p className="font-semibold text-gray-300">Sin tokens en la cosecha</p>
-          <p className="text-sm text-gray-500">Toca el botón <span className="text-brand font-bold">+</span> para agregar tu primer token.</p>
+          <p className="text-sm text-gray-500">
+            Toca el botón <span className="text-brand font-bold">+</span> para agregar tu primer token.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
