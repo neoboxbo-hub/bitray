@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(netstat -ano)",
+      "Bash(git config *)",
+      "Bash(echo \"user.name: $\\(git config user.name\\)\")",
+      "Bash(echo \"user.email: $\\(git config user.email\\)\")",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'feat: BitRay Fase 1 - PWA mobile-first con 3 modulos \\(mock data\\) *)"
+    ]
+  }
+}

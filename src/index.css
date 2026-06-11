@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-ink-900 text-gray-100 font-sans antialiased;
+    /* Respeta el notch / barras del celular */
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+  /* Inputs sin zoom raro en iOS (font-size >= 16px) */
+  input,
+  select {
+    font-size: 16px;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-ink-700 border border-ink-600 rounded-2xl shadow-card;
+  }
+  .field {
+    @apply w-full bg-ink-800 border border-ink-600 rounded-xl px-4 py-3 text-gray-100
+           placeholder-gray-500 outline-none focus:border-brand transition-colors;
+  }
+  .label {
+    @apply block text-xs font-medium uppercase tracking-wide text-gray-400 mb-1.5;
+  }
+  .btn-primary {
+    @apply w-full bg-brand text-ink-900 font-bold rounded-xl py-3.5 active:scale-[0.98]
+           transition-transform disabled:opacity-40;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
+  }
+}
+
+/* Scrollbar discreto */
+::-webkit-scrollbar { width: 0px; }
+
+@keyframes slideup {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

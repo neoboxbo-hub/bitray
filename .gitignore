@@ -1,0 +1,24 @@
+# Dependencias
+node_modules
+
+# Build
+dist
+dist-ssr
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Entorno (NUNCA subir llaves)
+.env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel

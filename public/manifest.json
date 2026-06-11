@@ -1,0 +1,18 @@
+{
+  "name": "BitRay · Estrategia Cripto",
+  "short_name": "BitRay",
+  "description": "Gestión de inversión cripto en 3 módulos: El Cofre Inmortal, La Cosecha Feliz y El Turbo-Ciclo.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0b0f",
+  "theme_color": "#0a0b0f",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='96' fill='%23f7931a'/%3E%3Ctext x='50%25' y='58%25' font-size='280' text-anchor='middle' fill='%230a0b0f' font-family='Arial' font-weight='bold'%3E%E2%82%BF%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
