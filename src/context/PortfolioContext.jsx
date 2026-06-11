@@ -30,6 +30,7 @@ const load = (key, fallback) => {
 // Estado central simulado. En la Fase 2 esto se reemplaza por Supabase/API.
 export function PortfolioProvider({ children }) {
   const [prices, setPrices] = useState(mockPrices)
+  const [changes, setChanges] = useState({}) // { SYMBOL: { h1, h24 } }
   const [pricesStatus, setPricesStatus] = useState('mock') // 'mock' | 'live' | 'error'
   const [pricesUpdated, setPricesUpdated] = useState(null)
   const [cofreCompras, setCofreCompras] = useState(() =>
@@ -44,9 +45,10 @@ export function PortfolioProvider({ children }) {
     let active = true
     const tick = async () => {
       try {
-        const p = await fetchPrices()
+        const { prices: p, changes: c } = await fetchPrices()
         if (!active) return
         setPrices(p)
+        setChanges(c)
         setPricesStatus('live')
         setPricesUpdated(new Date())
       } catch (e) {
@@ -147,6 +149,7 @@ export function PortfolioProvider({ children }) {
 
   const value = {
     prices,
+    changes,
     pricesStatus,
     pricesUpdated,
     cofre,

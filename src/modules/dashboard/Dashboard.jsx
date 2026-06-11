@@ -2,39 +2,7 @@ import { Link } from 'react-router-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { fmtUsd, fmtPct } from '../../utils/calculations'
 import { mockFearGreed } from '../../data/mockData'
-
-// Tarjeta de acceso a cada uno de los 3 módulos.
-function ModuleCard({ to, icon, color, name, subtitle, value, pnlPct }) {
-  return (
-    <Link
-      to={to}
-      className="card p-4 flex items-center gap-4 active:scale-[0.99] transition-transform"
-    >
-      <div
-        className="h-12 w-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
-        style={{ background: `${color}1f` }}
-      >
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold leading-tight">{name}</p>
-        <p className="text-xs text-gray-500 truncate">{subtitle}</p>
-      </div>
-      <div className="text-right shrink-0">
-        <p className="font-semibold tabular-nums">{fmtUsd(value)}</p>
-        {pnlPct !== undefined && (
-          <p
-            className={`text-xs font-medium ${
-              pnlPct >= 0 ? 'text-profit' : 'text-loss'
-            }`}
-          >
-            {fmtPct(pnlPct)}
-          </p>
-        )}
-      </div>
-    </Link>
-  )
-}
+import MarketTable from './MarketTable'
 
 export default function Dashboard() {
   const { balanceTotal, cofre, cosecha, cosechaValor, pricesStatus, pricesUpdated } =
@@ -130,40 +98,8 @@ export default function Dashboard() {
         </Link>
       )}
 
-      {/* Acceso rápido a los 3 módulos */}
-      <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400 mb-3">
-          Tus módulos
-        </h2>
-        <div className="space-y-3">
-          <ModuleCard
-            to="/cofre"
-            icon="🔒"
-            color="#f7931a"
-            name="El Cofre Inmortal"
-            subtitle="Largo plazo · Solo BTC"
-            value={cofre.valorActual}
-            pnlPct={cofre.pnlPct}
-          />
-          <ModuleCard
-            to="/cosecha"
-            icon="🌱"
-            color="#16c784"
-            name="La Cosecha Feliz"
-            subtitle="Mediano plazo · Altcoins"
-            value={cosechaValor}
-            pnlPct={cosechaPnlPct}
-          />
-          <ModuleCard
-            to="/turbo"
-            icon="⚡"
-            color="#3b82f6"
-            name="El Turbo-Ciclo"
-            subtitle="Corto plazo · Flujo de efectivo"
-            value={0}
-          />
-        </div>
-      </section>
+      {/* Tabla de mercado con todos los tokens de tu lista */}
+      <MarketTable />
     </div>
   )
 }
