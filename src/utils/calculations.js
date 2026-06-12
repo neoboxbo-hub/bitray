@@ -30,15 +30,46 @@ export function calcCofre(compras, precioActual) {
   return { usdInvertido, btcAcumulado, valorActual, precioPromedio, pnl, pnlPct }
 }
 
-// ---------- MÓDULO 2: Cosecha (precio promedio ponderado) ----------
-export function calcToken(compras, precioActual) {
-  const cantidad = compras.reduce((s, c) => s + c.cantidad, 0)
+// ---------- MÓDULO 2 y 3: Cosecha / Turbo (compras + ventas) ----------
+// Cada transacción tiene tipo: 'compra' (default) | 'venta'.
+export function calcToken(transacciones, precioActual) {
+  const compras = transacciones.filter((t) => (t.tipo ?? 'compra') === 'compra')
+  const ventas  = transacciones.filter((t) => t.tipo === 'venta')
+
+  const cantidadComprada = compras.reduce((s, c) => s + c.cantidad, 0)
+  const cantidadVendida  = ventas.reduce((s, v) => s + v.cantidad, 0)
+  const cantidad = Math.max(0, cantidadComprada - cantidadVendida)
+
   const costo = compras.reduce((s, c) => s + c.cantidad * c.precio, 0)
-  const precioPromedio = cantidad > 0 ? costo / cantidad : 0 // = punto de equilibrio
-  const valorActual = cantidad * precioActual
-  const pnl = valorActual - costo
-  const pnlPct = costo > 0 ? (pnl / costo) * 100 : 0
-  return { cantidad, costo, precioPromedio, valorActual, pnl, pnlPct }
+  // Precio promedio ponderado solo de compras (punto de equilibrio).
+  const precioPromedio = cantidadComprada > 0 ? costo / cantidadComprada : 0
+
+  // PnL realizado: (precio de venta − precio promedio) × cantidad vendida.
+  const pnlRealizado = ventas.reduce(
+    (s, v) => s + (v.precio - precioPromedio) * v.cantidad,
+    0,
+  )
+
+  // PnL no realizado: valor actual de la posición abierta vs su costo.
+  const costoAbierto = cantidad * precioPromedio
+  const valorActual  = cantidad * precioActual
+  const pnlNoRealizado = valorActual - costoAbierto
+
+  const pnlTotal = pnlNoRealizado + pnlRealizado
+  const pnlPct   = costo > 0 ? (pnlTotal / costo) * 100 : 0
+
+  return {
+    cantidad,
+    cantidadComprada,
+    cantidadVendida,
+    costo,
+    precioPromedio,
+    valorActual,
+    pnl: pnlTotal,
+    pnlPct,
+    pnlRealizado,
+    pnlNoRealizado,
+  }
 }
 
 // ---------- MÓDULO 3: Turbo-Ciclo ----------
