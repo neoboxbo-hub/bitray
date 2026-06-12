@@ -30,11 +30,30 @@ const loadCustomTokens = () => {
   try { return JSON.parse(localStorage.getItem('bitray.customTokens') || '[]') } catch { return [] }
 }
 
+const BITACORA_KEY = 'bitray.bitacora'
+const BITACORA_DEFAULT = 'BTC mantiene rango $103K–$108K. Dominancia en 62.4%. Mercado en zona de codicia moderada. Sin catalizadores macro esta semana.'
+
 export default function AsistenteOperacion() {
   const { cosecha, turbo, prices } = usePortfolio()
 
   const [customTokens, setCustomTokens] = useState(loadCustomTokens)
   const [showAddModal, setShowAddModal] = useState(false)
+
+  const [bitacora, setBitacora] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(BITACORA_KEY)) || BITACORA_DEFAULT } catch { return BITACORA_DEFAULT }
+  })
+  const [bitacoraTs, setBitacoraTs] = useState(() => localStorage.getItem(BITACORA_KEY + '.ts') || null)
+  const [editingBitacora, setEditingBitacora] = useState(false)
+  const [bitacoraDraft, setBitacoraDraft] = useState('')
+
+  const saveBitacora = () => {
+    setBitacora(bitacoraDraft)
+    const ts = new Date().toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
+    setBitacoraTs(ts)
+    localStorage.setItem(BITACORA_KEY, JSON.stringify(bitacoraDraft))
+    localStorage.setItem(BITACORA_KEY + '.ts', ts)
+    setEditingBitacora(false)
+  }
   const [newSymbol, setNewSymbol]       = useState('')
   const [newNombre, setNewNombre]       = useState('')
 
@@ -133,26 +152,26 @@ export default function AsistenteOperacion() {
         <select
           value={selectedSymbol}
           onChange={e => handleSelectToken(e.target.value)}
-          className="field text-xs py-2.5"
-          style={{ fontSize: '13px' }}
+          className="field py-2"
+          style={{ fontSize: '12px' }}
         >
           <option value="">— Selecciona un token —</option>
-          <optgroup label="📁 En tu portafolio">
+          <optgroup label="En tu portafolio">
             {allOptions.filter(t => t.enPortafolio).map(t => (
               <option key={t.symbol} value={t.symbol}>
-                {t.symbol} · {t.nombre} · {t.modulo}
+                {t.symbol} — {t.nombre}
               </option>
             ))}
           </optgroup>
-          <optgroup label="👁 Lista de seguimiento">
+          <optgroup label="Seguimiento">
             {allOptions.filter(t => !t.enPortafolio).map(t => (
               <option key={t.symbol} value={t.symbol}>
-                {t.symbol} · {t.nombre} · {t.narrativa}
+                {t.symbol} — {t.nombre}
               </option>
             ))}
           </optgroup>
-          <option value="__add_new__" style={{ color: '#6366f1', fontWeight: 600 }}>
-            ＋ Agregar nuevo token...
+          <option value="__add_new__" style={{ color: '#818cf8', fontWeight: 600 }}>
+            + Agregar nuevo token...
           </option>
         </select>
 
@@ -165,6 +184,39 @@ export default function AsistenteOperacion() {
           </div>
         )}
       </section>
+
+      {/* ── Bitácora de Mercado — visible al seleccionar token ── */}
+      {selectedSymbol && selectedSymbol !== '__add_new__' && (
+        <section className="card p-4 space-y-2 border-l-4 border-l-brand/60">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">📋</span>
+              <h2 className="text-xs font-bold uppercase tracking-wide text-gray-300">Bitácora de Mercado</h2>
+            </div>
+            <button
+              onClick={() => { setBitacoraDraft(bitacora); setEditingBitacora(v => !v) }}
+              className="text-[11px] text-gray-500 underline active:text-gray-300"
+            >
+              {editingBitacora ? 'Cancelar' : 'Editar'}
+            </button>
+          </div>
+          {editingBitacora ? (
+            <div className="space-y-2">
+              <textarea className="field text-sm leading-relaxed resize-none" rows={4}
+                value={bitacoraDraft} onChange={e => setBitacoraDraft(e.target.value)} autoFocus />
+              <button onClick={saveBitacora}
+                className="w-full py-2 rounded-xl bg-brand/20 text-brand border border-brand/40 font-bold text-sm">
+                Guardar
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-300 leading-relaxed">{bitacora}</p>
+          )}
+          <p className="text-[10px] text-gray-600">
+            {bitacoraTs ? `Actualizado: ${bitacoraTs}` : 'Toca Editar para actualizar el resumen.'}
+          </p>
+        </section>
+      )}
 
       {/* ── A) Calculadora TP/SL ── */}
       {selectedSymbol && selectedSymbol !== '__add_new__' && (
