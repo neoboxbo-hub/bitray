@@ -5,6 +5,7 @@ import { mockFearGreed } from '../../data/mockData'
 import MarketTable from './MarketTable'
 import DataSync from '../../components/shared/DataSync'
 import ResumenDiario from './ResumenDiario'
+import AlertasPrecio from '../../components/shared/AlertasPrecio'
 
 export default function Dashboard() {
   const {
@@ -142,6 +143,9 @@ export default function Dashboard() {
 
       {/* Tabla de mercado con todos los tokens de tu lista */}
       <MarketTable />
+
+      {/* Alertas de precio */}
+      <AlertasPrecio />
 
       {/* Sincronizar datos entre dispositivos */}
       <DataSync />
