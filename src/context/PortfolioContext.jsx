@@ -140,6 +140,29 @@ export function PortfolioProvider({ children }) {
   // --- Acciones Turbo ---
   const turboActions = useMemo(() => makeTokenActions(setTurboTokens), [])
 
+  // Mueve un token completo (con compras) de Cosecha → Turbo o viceversa.
+  const moverAturbo = (symbol) => {
+    setCosechaTokens((prev) => {
+      const token = prev.find((t) => t.symbol === symbol)
+      if (!token) return prev
+      setTurboTokens((tp) =>
+        tp.find((t) => t.symbol === symbol) ? tp : [...tp, token],
+      )
+      return prev.filter((t) => t.symbol !== symbol)
+    })
+  }
+
+  const moverACosecha = (symbol) => {
+    setTurboTokens((prev) => {
+      const token = prev.find((t) => t.symbol === symbol)
+      if (!token) return prev
+      setCosechaTokens((cp) =>
+        cp.find((t) => t.symbol === symbol) ? cp : [...cp, token],
+      )
+      return prev.filter((t) => t.symbol !== symbol)
+    })
+  }
+
   // --- Derivados ---
   const cofre = useMemo(
     () => calcCofre(cofreCompras, prices.BTC),
@@ -198,6 +221,8 @@ export function PortfolioProvider({ children }) {
     ),
     // Totales
     balanceTotal, pnl24h,
+    // Mover tokens entre módulos
+    moverAturbo, moverACosecha,
   }
 
   return (

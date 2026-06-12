@@ -14,12 +14,13 @@ const EXCHANGE_COLOR = {
   Otro:    'text-gray-400   bg-gray-400/10   border-gray-400/30',
 }
 
-function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken, onSetPrecio }) {
+function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken, onSetPrecio, onMover }) {
   // formMode: null | 'compra' | 'venta'
   const [formMode, setFormMode]           = useState(null)
   const [showHistory, setShowHistory]     = useState(false)
   const [confirmClear, setConfirmClear]   = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
+  const [confirmMover, setConfirmMover]   = useState(false)
   const [cantidad, setCantidad]           = useState('')
   const [precio, setPrecio]               = useState(token.precioActual?.toString() || '')
   const [editingPrice, setEditingPrice]   = useState(false)
@@ -229,6 +230,16 @@ function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken, o
         </form>
       )}
 
+      {/* Mover a Turbo */}
+      {formMode === null && (
+        <button
+          onClick={() => setConfirmMover(true)}
+          className="w-full mt-2 py-1.5 rounded-lg border border-blue-500/30 text-blue-400/80 text-xs font-medium active:scale-[0.99]"
+        >
+          ⚡ Mover a Turbo-Ciclo
+        </button>
+      )}
+
       {/* Diálogos de confirmación */}
       <ConfirmDialog open={confirmClear} title={`¿Limpiar historial de ${token.symbol}?`}
         message="Se borran TODAS las transacciones (compras y ventas)."
@@ -241,6 +252,12 @@ function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken, o
         confirmText="Sí, eliminar"
         onConfirm={() => { onRemoveToken(token.symbol); setConfirmRemove(false) }}
         onCancel={() => setConfirmRemove(false)} />
+
+      <ConfirmDialog open={confirmMover} title={`¿Mover ${token.symbol} al Turbo-Ciclo?`}
+        message="El token y todas sus transacciones se trasladan a Turbo. No se pierde ningún dato."
+        confirmText="Sí, mover"
+        onConfirm={() => { onMover(token.symbol); setConfirmMover(false) }}
+        onCancel={() => setConfirmMover(false)} />
     </div>
   )
 }
@@ -252,6 +269,7 @@ export default function CosechaFeliz() {
     cosecha_addCompra, cosecha_updateCompra,
     cosecha_deleteCompra, cosecha_clearCompras,
     cosecha_setPrecioManual,
+    moverAturbo,
   } = usePortfolio()
 
   const [showAddForm, setShowAddForm] = useState(false)
@@ -328,6 +346,7 @@ export default function CosechaFeliz() {
               onDelete={cosecha_deleteCompra}
               onRemoveToken={cosecha_removeToken}
               onSetPrecio={cosecha_setPrecioManual}
+              onMover={moverAturbo}
             />
           ))}
         </div>

@@ -18,12 +18,13 @@ const EXCHANGE_COLOR = {
   Otro:    'text-gray-400   bg-gray-400/10   border-gray-400/30',
 }
 
-function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken, onSetPrecio }) {
+function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken, onSetPrecio, onMover }) {
   // formMode: null | 'compra' | 'venta'
   const [formMode, setFormMode]           = useState(null)
   const [showHistory, setShowHistory]     = useState(false)
   const [confirmClear, setConfirmClear]   = useState(false)
   const [confirmRemove, setConfirmRemove] = useState(false)
+  const [confirmMover, setConfirmMover]   = useState(false)
   const [cantidad, setCantidad]           = useState('')
   const [precio, setPrecio]               = useState(token.precioActual?.toString() || '')
   const [editingPrice, setEditingPrice]   = useState(false)
@@ -230,6 +231,16 @@ function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveTok
         </form>
       )}
 
+      {/* Mover a Cosecha */}
+      {formMode === null && (
+        <button
+          onClick={() => setConfirmMover(true)}
+          className="w-full mt-2 py-1.5 rounded-lg border border-profit/30 text-profit/70 text-xs font-medium active:scale-[0.99]"
+        >
+          🌱 Mover a La Cosecha
+        </button>
+      )}
+
       <ConfirmDialog open={confirmClear} title={`¿Limpiar historial de ${token.symbol}?`}
         message="Se borran TODAS las transacciones (compras y ventas)."
         confirmText="Sí, limpiar"
@@ -241,6 +252,12 @@ function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveTok
         confirmText="Sí, eliminar"
         onConfirm={() => { onRemoveToken(token.symbol); setConfirmRemove(false) }}
         onCancel={() => setConfirmRemove(false)} />
+
+      <ConfirmDialog open={confirmMover} title={`¿Mover ${token.symbol} a La Cosecha?`}
+        message="El token y todas sus transacciones se trasladan a Cosecha. No se pierde ningún dato."
+        confirmText="Sí, mover"
+        onConfirm={() => { onMover(token.symbol); setConfirmMover(false) }}
+        onCancel={() => setConfirmMover(false)} />
     </div>
   )
 }
@@ -252,6 +269,7 @@ export default function TurboCiclo() {
     turbo_addCompra, turbo_updateCompra,
     turbo_deleteCompra, turbo_clearCompras,
     turbo_setPrecioManual,
+    moverACosecha,
   } = usePortfolio()
 
   const [showAddForm, setShowAddForm]       = useState(false)
@@ -311,6 +329,7 @@ export default function TurboCiclo() {
               onDelete={turbo_deleteCompra}
               onRemoveToken={turbo_removeToken}
               onSetPrecio={turbo_setPrecioManual}
+              onMover={moverACosecha}
             />
           ))}
         </div>
