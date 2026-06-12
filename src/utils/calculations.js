@@ -20,14 +20,21 @@ export const fmtPct = (n) =>
   `${n >= 0 ? '+' : ''}${(Number.isFinite(n) ? n : 0).toFixed(2)}%`
 
 // ---------- MÓDULO 1: Cofre (DCA en BTC) ----------
-export function calcCofre(compras, precioActual) {
-  const usdInvertido = compras.reduce((s, c) => s + c.usd, 0)
-  const btcAcumulado = compras.reduce((s, c) => s + c.usd / c.precioBtc, 0)
-  const valorActual = btcAcumulado * precioActual
-  const precioPromedio = btcAcumulado > 0 ? usdInvertido / btcAcumulado : 0
-  const pnl = valorActual - usdInvertido
+// ventas: [{ id, fecha, usd, precioBtc }] — registros de salida parcial.
+export function calcCofre(compras, precioActual, ventas = []) {
+  const usdInvertido  = compras.reduce((s, c) => s + c.usd, 0)
+  const btcComprado   = compras.reduce((s, c) => s + c.usd / c.precioBtc, 0)
+  const btcVendido    = ventas.reduce((s, v) => s + v.usd / v.precioBtc, 0)
+  const btcAcumulado  = Math.max(0, btcComprado - btcVendido)
+  const valorActual   = btcAcumulado * precioActual
+  const precioPromedio = btcComprado > 0 ? usdInvertido / btcComprado : 0
+  const usdRecuperado = ventas.reduce((s, v) => s + v.usd, 0)
+  // PnL = (valor abierto − costo abierto) + ganancia ya realizada en ventas
+  const costoAbierto  = btcAcumulado * precioPromedio
+  const pnlRealizado  = ventas.reduce((s, v) => s + (v.precioBtc - precioPromedio) * (v.usd / v.precioBtc), 0)
+  const pnl    = (valorActual - costoAbierto) + pnlRealizado
   const pnlPct = usdInvertido > 0 ? (pnl / usdInvertido) * 100 : 0
-  return { usdInvertido, btcAcumulado, valorActual, precioPromedio, pnl, pnlPct }
+  return { usdInvertido, btcComprado, btcAcumulado, btcVendido, valorActual, precioPromedio, usdRecuperado, pnlRealizado, pnl, pnlPct }
 }
 
 // ---------- MÓDULO 2 y 3: Cosecha / Turbo (compras + ventas) ----------

@@ -18,7 +18,12 @@
       "Bash(node -e \"fetch\\('https://api.binance.com/api/v3/ticker/price?symbols='+encodeURIComponent\\(JSON.stringify\\(['BTCUSDT','SOLUSDT','PIXELUSDT']\\)\\)\\).then\\(r=>r.json\\(\\)\\).then\\(d=>console.log\\(JSON.stringify\\(d\\)\\)\\).catch\\(e=>console.log\\('ERR',e.message\\)\\)\")",
       "Bash(git commit -q -m 'feat: tabla de mercado en dashboard + variacion 1h y 24h desde Binance *)",
       "Bash(git commit -q -m 'feat: tabla mercado sin columna 1h + panel TP/SL en cosecha por token *)",
-      "Bash(git commit -q -m 'feat: arquitectura dinamica de tokens + PnL 24h dashboard *)"
+      "Bash(git commit -q -m 'feat: arquitectura dinamica de tokens + PnL 24h dashboard *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git commit -m 'feat: mostrar monto invertido \\(inv. $X\\) encima del valor actual en cada tarjeta *)",
+      "Bash(git commit -m 'feat: total invertido y PnL global en el balance del dashboard *)",
+      "Bash(git commit -m 'feat: boton mover token entre Cosecha y Turbo sin perder datos *)",
+      "Bash(git commit -m 'feat: exportar/importar datos entre dispositivos via codigo *)"
     ]
   }
 }

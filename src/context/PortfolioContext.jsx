@@ -92,6 +92,9 @@ export function PortfolioProvider({ children }) {
   const [cofreCompras, setCofreCompras] = useState(() =>
     load('bitray.cofre', mockCofreCompras),
   )
+  const [cofreVentas, setCofreVentas] = useState(() =>
+    load('bitray.cofre.ventas', []),
+  )
   const [cosechaTokens, setCosechaTokens] = useState(() =>
     load('bitray.cosecha', mockCosechaTokens),
   )
@@ -122,6 +125,7 @@ export function PortfolioProvider({ children }) {
 
   // Persistencia automática.
   useEffect(() => { localStorage.setItem('bitray.cofre', JSON.stringify(cofreCompras)) }, [cofreCompras])
+  useEffect(() => { localStorage.setItem('bitray.cofre.ventas', JSON.stringify(cofreVentas)) }, [cofreVentas])
   useEffect(() => { localStorage.setItem('bitray.cosecha', JSON.stringify(cosechaTokens)) }, [cosechaTokens])
   useEffect(() => { localStorage.setItem('bitray.turbo', JSON.stringify(turboTokens)) }, [turboTokens])
 
@@ -133,6 +137,11 @@ export function PortfolioProvider({ children }) {
   const deleteCompraCofre = (id) =>
     setCofreCompras((prev) => prev.filter((c) => c.id !== id))
   const clearCofre = () => setCofreCompras([])
+
+  const addVentaCofre = (venta) =>
+    setCofreVentas((prev) => [...prev, { ...venta, id: Date.now() }])
+  const deleteVentaCofre = (id) =>
+    setCofreVentas((prev) => prev.filter((v) => v.id !== id))
 
   // --- Acciones Cosecha ---
   const cosechaActions = useMemo(() => makeTokenActions(setCosechaTokens), [])
@@ -165,8 +174,8 @@ export function PortfolioProvider({ children }) {
 
   // --- Derivados ---
   const cofre = useMemo(
-    () => calcCofre(cofreCompras, prices.BTC),
-    [cofreCompras, prices.BTC],
+    () => calcCofre(cofreCompras, prices.BTC, cofreVentas),
+    [cofreCompras, prices.BTC, cofreVentas],
   )
 
   const cosecha = useMemo(
@@ -211,6 +220,7 @@ export function PortfolioProvider({ children }) {
     prices, changes, pricesStatus, pricesUpdated,
     // Cofre
     cofre, cofreCompras, addCompraCofre, updateCompraCofre, deleteCompraCofre, clearCofre,
+    cofreVentas, addVentaCofre, deleteVentaCofre,
     // Cosecha
     cosecha, cosechaValor, ...Object.fromEntries(
       Object.entries(cosechaActions).map(([k, v]) => [`cosecha_${k}`, v])
