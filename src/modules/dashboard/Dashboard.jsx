@@ -4,6 +4,7 @@ import { fmtUsd, fmtPct } from '../../utils/calculations'
 import { mockFearGreed } from '../../data/mockData'
 import MarketTable from './MarketTable'
 import DataSync from '../../components/shared/DataSync'
+import ResumenDiario from './ResumenDiario'
 
 export default function Dashboard() {
   const {
@@ -135,6 +136,9 @@ export default function Dashboard() {
           <span className="text-gray-500">›</span>
         </Link>
       )}
+
+      {/* Resumen diario del mercado */}
+      <ResumenDiario />
 
       {/* Tabla de mercado con todos los tokens de tu lista */}
       <MarketTable />

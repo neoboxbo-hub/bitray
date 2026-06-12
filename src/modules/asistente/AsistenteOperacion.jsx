@@ -8,17 +8,7 @@ import FearGreedWidget from '../turbo/FearGreedWidget'
 import AINews from '../turbo/AINews'
 import LiquidityPools from './LiquidityPools'
 import RadarOportunidades from './RadarOportunidades'
-
-const SENTIMIENTO = {
-  BTC:  { texto: 'Bitcoin consolida por encima de los $105K tras la semana de menor volatilidad del trimestre. El índice Fear & Greed se mantiene en zona codiciosa (72). On-chain muestra acumulación neta de holders a largo plazo. Proyección: rango $103K–$112K en los próximos 7 días con sesgo alcista moderado.', tendencia: '📈 Alcista moderado', horizonte: '7–14 días' },
-  ETH:  { texto: 'Ethereum rompe resistencia en $2,700 con volumen 2.1x superior al promedio. El ratio ETH/BTC repunta desde mínimos de 3 meses. Flujos netos positivos en ETFs spot desde hace 5 días consecutivos. Proyección: objetivo técnico $2,950, soporte clave en $2,580.', tendencia: '📈 Alcista', horizonte: '5–10 días' },
-  SOL:  { texto: 'Solana mantiene dominio en actividad DeFi on-chain (52% del volumen DEX total). Precio rebota desde EMA50 diaria con vela envolvente alcista. Narrativa de gaming y memecoins sigue activa. Proyección: resistencia en $195, soporte fuerte $172.', tendencia: '📈 Alcista', horizonte: '3–7 días' },
-  XRP:  { texto: 'XRP cotiza en rango estrecho $1.10–$1.22 a la espera del fallo final SEC. Volumen decae un 18% respecto a la semana pasada. Sin catalizador claro a corto plazo. Proyección: movimiento lateral probable, breakout esperado solo con noticia macro.', tendencia: '➡️ Lateral', horizonte: '3–5 días' },
-  FET:  { texto: 'Fetch.ai (FET) comprime en triángulo simétrico tras corrección del 28% desde máximos. La narrativa AI sigue siendo el sector con mayor capital rotante. Proyección: resolución del patrón en 3–5 días, objetivo alcista $2.10, stop sugerido $1.55.', tendencia: '⚡ Breakout pendiente', horizonte: '3–5 días' },
-  RON:  { texto: 'Ronin Network sorprende con un aumento del 340% en volumen de transacciones en 24h asociado al lanzamiento de una colaboración gaming. Zona de liquidaciones $3.20 actúa como imán de precio. Proyección: impulso de corto plazo viable hacia $3.60–$3.80.', tendencia: '📈 Alcista fuerte', horizonte: '1–4 días' },
-  NEAR: { texto: 'NEAR Protocol confirma acumulación institucional en rango $4.80–$5.10. La integración con modelos de IA generativa atrae atención del mercado. Volumen 15% sobre media de 30 días. Proyección: objetivo $5.80, invalidación bajo $4.60.', tendencia: '📈 Alcista moderado', horizonte: '7–10 días' },
-  DEFAULT: { texto: 'Sin datos de sentimiento disponibles para este token. Los indicadores generales del mercado muestran un sentimiento neutral-positivo. Procede con análisis técnico propio antes de operar.', tendencia: '➡️ Sin datos', horizonte: 'N/A' },
-}
+import BitacoraViva from './BitacoraViva'
 
 const GUIA_DEFAULT = `Mis reglas de trading:
 • Solo opero con tendencia alcista confirmada (EMA 20 > EMA 50).
@@ -30,30 +20,11 @@ const loadCustomTokens = () => {
   try { return JSON.parse(localStorage.getItem('bitray.customTokens') || '[]') } catch { return [] }
 }
 
-const BITACORA_KEY = 'bitray.bitacora'
-const BITACORA_DEFAULT = 'BTC mantiene rango $103K–$108K. Dominancia en 62.4%. Mercado en zona de codicia moderada. Sin catalizadores macro esta semana.'
-
 export default function AsistenteOperacion() {
   const { cosecha, turbo, prices } = usePortfolio()
 
   const [customTokens, setCustomTokens] = useState(loadCustomTokens)
   const [showAddModal, setShowAddModal] = useState(false)
-
-  const [bitacora, setBitacora] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(BITACORA_KEY)) || BITACORA_DEFAULT } catch { return BITACORA_DEFAULT }
-  })
-  const [bitacoraTs, setBitacoraTs] = useState(() => localStorage.getItem(BITACORA_KEY + '.ts') || null)
-  const [editingBitacora, setEditingBitacora] = useState(false)
-  const [bitacoraDraft, setBitacoraDraft] = useState('')
-
-  const saveBitacora = () => {
-    setBitacora(bitacoraDraft)
-    const ts = new Date().toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
-    setBitacoraTs(ts)
-    localStorage.setItem(BITACORA_KEY, JSON.stringify(bitacoraDraft))
-    localStorage.setItem(BITACORA_KEY + '.ts', ts)
-    setEditingBitacora(false)
-  }
   const [newSymbol, setNewSymbol]       = useState('')
   const [newNombre, setNewNombre]       = useState('')
 
@@ -67,17 +38,18 @@ export default function AsistenteOperacion() {
     return map
   }, [cosecha, turbo])
 
-  // Catálogo completo: TOKEN_CATALOG + tokens personalizados
   const allOptions = useMemo(() => {
     const catalog = TOKEN_CATALOG.map(t => ({
-      ...t, enPortafolio: !!portfolioMap[t.symbol],
+      ...t,
+      enPortafolio: !!portfolioMap[t.symbol],
       modulo: portfolioMap[t.symbol]
         ? (cosecha.find(c => c.symbol === t.symbol) ? 'Cosecha' : 'Turbo')
         : null,
       isCustom: false,
     }))
     const custom = customTokens.map(t => ({
-      ...t, enPortafolio: !!portfolioMap[t.symbol],
+      ...t,
+      enPortafolio: !!portfolioMap[t.symbol],
       modulo: portfolioMap[t.symbol]
         ? (cosecha.find(c => c.symbol === t.symbol) ? 'Cosecha' : 'Turbo')
         : null,
@@ -128,10 +100,16 @@ export default function AsistenteOperacion() {
 
   const resultadoFull = useMemo(() => {
     if (!hasCalcData) return null
-    return calcTurbo({ precioCompra: precioEntrada, capital: capitalNum, feePct: TRADING_FEE_PCT, riesgoPct: parseFloat(riesgoPct) || 1.5, targets: [2, 3, 4] })
+    return calcTurbo({
+      precioCompra: precioEntrada,
+      capital: capitalNum,
+      feePct: TRADING_FEE_PCT,
+      riesgoPct: parseFloat(riesgoPct) || 1.5,
+      targets: [2, 3, 4],
+    })
   }, [precioEntrada, capitalNum, riesgoPct, hasCalcData])
 
-  const sentimiento = selectedSymbol ? (SENTIMIENTO[selectedSymbol] || SENTIMIENTO.DEFAULT) : null
+  const tokenActivo = selectedSymbol && selectedSymbol !== '__add_new__'
 
   return (
     <div className="space-y-6">
@@ -175,7 +153,7 @@ export default function AsistenteOperacion() {
           </option>
         </select>
 
-        {selectedSymbol && selectedSymbol !== '__add_new__' && (
+        {tokenActivo && (
           <div className="flex items-center justify-between bg-ink-800 rounded-lg px-3 py-2">
             <span className="text-xs text-gray-500">Precio actual ({selectedSymbol})</span>
             <span className="font-semibold tabular-nums text-sm">
@@ -185,41 +163,16 @@ export default function AsistenteOperacion() {
         )}
       </section>
 
-      {/* ── Bitácora de Mercado — visible al seleccionar token ── */}
-      {selectedSymbol && selectedSymbol !== '__add_new__' && (
-        <section className="card p-4 space-y-2 border-l-4 border-l-brand/60">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">📋</span>
-              <h2 className="text-xs font-bold uppercase tracking-wide text-gray-300">Bitácora de Mercado</h2>
-            </div>
-            <button
-              onClick={() => { setBitacoraDraft(bitacora); setEditingBitacora(v => !v) }}
-              className="text-[11px] text-gray-500 underline active:text-gray-300"
-            >
-              {editingBitacora ? 'Cancelar' : 'Editar'}
-            </button>
-          </div>
-          {editingBitacora ? (
-            <div className="space-y-2">
-              <textarea className="field text-sm leading-relaxed resize-none" rows={4}
-                value={bitacoraDraft} onChange={e => setBitacoraDraft(e.target.value)} autoFocus />
-              <button onClick={saveBitacora}
-                className="w-full py-2 rounded-xl bg-brand/20 text-brand border border-brand/40 font-bold text-sm">
-                Guardar
-              </button>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-300 leading-relaxed">{bitacora}</p>
-          )}
-          <p className="text-[10px] text-gray-600">
-            {bitacoraTs ? `Actualizado: ${bitacoraTs}` : 'Toca Editar para actualizar el resumen.'}
-          </p>
-        </section>
+      {/* ── Bitácora de Mercado — datos reales CoinGecko ── */}
+      {tokenActivo && (
+        <BitacoraViva
+          symbol={selectedSymbol}
+          precioEntrada={precioEntrada > 0 ? precioEntrada : null}
+        />
       )}
 
       {/* ── A) Calculadora TP/SL ── */}
-      {selectedSymbol && selectedSymbol !== '__add_new__' && (
+      {tokenActivo && (
         <section className="space-y-3">
           <h2 className="text-xs uppercase tracking-wide text-gray-400 font-semibold px-1">A · Matriz de objetivos</h2>
           <div className="card p-4 space-y-3">
@@ -308,28 +261,6 @@ export default function AsistenteOperacion() {
         </section>
       )}
 
-      {/* ── Sentimiento ── */}
-      {sentimiento && selectedSymbol !== '__add_new__' && (
-        <section className="space-y-2">
-          <h2 className="text-xs uppercase tracking-wide text-gray-400 font-semibold px-1">
-            Análisis · {selectedSymbol}
-          </h2>
-          <div className="card p-4 space-y-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="chip bg-blue-500/20 text-blue-300 text-[10px]">🤖 Perplexity*</span>
-              <span className={`chip text-[10px] ${
-                sentimiento.tendencia.startsWith('📈') ? 'bg-profit/15 text-profit' :
-                sentimiento.tendencia.startsWith('➡️') ? 'bg-gray-500/15 text-gray-400' :
-                'bg-yellow-400/15 text-yellow-400'
-              }`}>{sentimiento.tendencia}</span>
-              <span className="text-[10px] text-gray-500">{sentimiento.horizonte}</span>
-            </div>
-            <p className="text-sm text-gray-300 leading-relaxed">{sentimiento.texto}</p>
-            <p className="text-[10px] text-gray-600">* Simulado. Integración real con Perplexity en Fase 2.</p>
-          </div>
-        </section>
-      )}
-
       {/* ── B) Indicadores ── */}
       <section className="space-y-3">
         <h2 className="text-xs uppercase tracking-wide text-gray-400 font-semibold px-1">B · Indicadores de decisión</h2>
@@ -372,7 +303,6 @@ export default function AsistenteOperacion() {
           <div className="w-full max-w-md bg-ink-800 rounded-t-3xl p-6 space-y-4 shadow-2xl"
             style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))' }}>
 
-            {/* Header del modal */}
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-lg">Agregar token</h3>
               <button
@@ -390,21 +320,14 @@ export default function AsistenteOperacion() {
             <div className="space-y-2">
               <div>
                 <label className="label">Símbolo del token *</label>
-                <input
-                  type="text" className="field uppercase" placeholder="AVAX"
-                  value={newSymbol}
-                  onChange={e => setNewSymbol(e.target.value.toUpperCase())}
-                  autoFocus
-                  onKeyDown={e => e.key === 'Enter' && handleAddCustomToken()}
-                />
+                <input type="text" className="field uppercase" placeholder="AVAX"
+                  value={newSymbol} onChange={e => setNewSymbol(e.target.value.toUpperCase())}
+                  autoFocus onKeyDown={e => e.key === 'Enter' && handleAddCustomToken()} />
               </div>
               <div>
                 <label className="label">Nombre (opcional)</label>
-                <input
-                  type="text" className="field" placeholder="Avalanche"
-                  value={newNombre}
-                  onChange={e => setNewNombre(e.target.value)}
-                />
+                <input type="text" className="field" placeholder="Avalanche"
+                  value={newNombre} onChange={e => setNewNombre(e.target.value)} />
               </div>
             </div>
 
@@ -413,8 +336,7 @@ export default function AsistenteOperacion() {
                 className="flex-1 py-3 rounded-xl border border-ink-600 text-gray-400 font-semibold">
                 Cancelar
               </button>
-              <button onClick={handleAddCustomToken}
-                disabled={!newSymbol.trim()}
+              <button onClick={handleAddCustomToken} disabled={!newSymbol.trim()}
                 className="flex-1 py-3 rounded-xl bg-brand/20 text-brand border border-brand/40 font-bold disabled:opacity-40">
                 Agregar
               </button>
