@@ -2,13 +2,8 @@ import { useState } from 'react'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { fmtUsd, fmtNum, fmtPct } from '../../utils/calculations'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
-import TpSlPanel from '../../components/shared/TpSlPanel'
 import AddTokenForm from '../../components/shared/AddTokenForm'
 import TransactionHistory from '../../components/shared/TransactionHistory'
-import FearGreedWidget from './FearGreedWidget'
-import LiquidationHeatmap from './LiquidationHeatmap'
-import AINews from './AINews'
-import TurboCalculator from './TurboCalculator'
 
 const EXCHANGE_COLOR = {
   Binance: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30',
@@ -19,7 +14,6 @@ const EXCHANGE_COLOR = {
 }
 
 function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken, onSetPrecio, onMover }) {
-  // formMode: null | 'compra' | 'venta'
   const [formMode, setFormMode]           = useState(null)
   const [showHistory, setShowHistory]     = useState(false)
   const [confirmClear, setConfirmClear]   = useState(false)
@@ -32,9 +26,9 @@ function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveTok
 
   const up = token.pnlPct >= 0
   const exColor = EXCHANGE_COLOR[token.exchange] || EXCHANGE_COLOR['Otro']
-  const transacciones = token.compras   // all tx (buys + sells)
+  const transacciones = token.compras
   const totalTx = transacciones.length
-  const tieneVentas = transacciones.some((t) => t.tipo === 'venta')
+  const tieneVentas = transacciones.some(t => t.tipo === 'venta')
 
   const openForm = (mode) => {
     setFormMode(mode)
@@ -49,9 +43,7 @@ function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveTok
     if (!cant || !pr) return
     onAdd(token.symbol, {
       fecha: new Date().toISOString().slice(0, 10),
-      cantidad: cant,
-      precio: pr,
-      tipo: formMode,
+      cantidad: cant, precio: pr, tipo: formMode,
     })
     setCantidad('')
     setFormMode(null)
@@ -70,14 +62,12 @@ function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveTok
               <span className="chip bg-ink-600 text-gray-400 text-[10px]">{token.narrativa}</span>}
           </div>
           <p className="text-xs text-gray-500 mt-0.5">
-            {token.nombre} · {fmtNum(token.cantidad, 4)} unidades
+            {token.nombre} · {fmtNum(token.cantidad, 4)} uds.
           </p>
         </div>
         <div className="text-right shrink-0">
           {token.costo > 0 && (
-            <p className="text-[11px] text-gray-500 tabular-nums">
-              inv. {fmtUsd(token.costo)}
-            </p>
+            <p className="text-[11px] text-gray-500 tabular-nums">inv. {fmtUsd(token.costo)}</p>
           )}
           <p className="font-semibold tabular-nums">{fmtUsd(token.valorActual)}</p>
           {totalTx > 0 && (
@@ -97,39 +87,25 @@ function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveTok
               {fmtUsd(token.precioPromedio, 4)}
             </p>
           </div>
-          <div className="bg-ink-800 rounded-lg py-2 relative">
+          <div className="bg-ink-800 rounded-lg py-2">
             <p className="text-[10px] text-gray-500 flex items-center justify-center gap-1">
               Precio actual
-              {token.precioManual && (
-                <span className="text-yellow-400 text-[9px]">✎manual</span>
-              )}
+              {token.precioManual && <span className="text-yellow-400 text-[9px]">✎</span>}
             </p>
             {editingPrice ? (
               <div className="flex items-center gap-1 px-2">
-                <input
-                  type="number" inputMode="decimal"
+                <input type="number" inputMode="decimal"
                   className="field py-0.5 text-xs text-center w-full"
-                  placeholder="0.00"
-                  value={precioInput}
-                  onChange={(e) => setPrecioInput(e.target.value)}
-                  autoFocus
-                />
-                <button
-                  onClick={() => {
-                    const v = parseFloat(precioInput)
-                    if (v > 0) onSetPrecio(token.symbol, v)
-                    setEditingPrice(false)
-                  }}
+                  placeholder="0.00" value={precioInput}
+                  onChange={e => setPrecioInput(e.target.value)} autoFocus />
+                <button onClick={() => { const v = parseFloat(precioInput); if (v > 0) onSetPrecio(token.symbol, v); setEditingPrice(false) }}
                   className="text-profit text-xs font-bold shrink-0">✓</button>
-                <button
-                  onClick={() => { onSetPrecio(token.symbol, null); setEditingPrice(false) }}
+                <button onClick={() => { onSetPrecio(token.symbol, null); setEditingPrice(false) }}
                   className="text-gray-500 text-xs shrink-0">✕</button>
               </div>
             ) : (
-              <button
-                onClick={() => { setPrecioInput(token.precioActual?.toString() || ''); setEditingPrice(true) }}
-                className="text-sm font-semibold tabular-nums w-full active:opacity-70"
-              >
+              <button onClick={() => { setPrecioInput(token.precioActual?.toString() || ''); setEditingPrice(true) }}
+                className="text-sm font-semibold tabular-nums w-full active:opacity-70">
                 {fmtUsd(token.precioActual, 4)}
               </button>
             )}
@@ -141,30 +117,16 @@ function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveTok
       {tieneVentas && (
         <div className="mt-2 bg-ink-800 rounded-lg px-3 py-2 flex justify-between items-center">
           <p className="text-[11px] text-gray-500">PnL Realizado</p>
-          <p className={`text-sm font-semibold tabular-nums ${
-            token.pnlRealizado >= 0 ? 'text-profit' : 'text-loss'
-          }`}>
+          <p className={`text-sm font-semibold tabular-nums ${token.pnlRealizado >= 0 ? 'text-profit' : 'text-loss'}`}>
             {token.pnlRealizado >= 0 ? '+' : ''}{fmtUsd(token.pnlRealizado)}
           </p>
         </div>
       )}
 
-      {/* Panel TP / Stop Loss */}
-      {totalTx > 0 && (
-        <TpSlPanel
-          precioEntrada={token.precioPromedio}
-          capital={token.costo}
-          precioActual={token.precioActual}
-          symbol={token.symbol}
-        />
-      )}
-
       {/* Toggle historial */}
       {totalTx > 0 && (
-        <button
-          onClick={() => setShowHistory((v) => !v)}
-          className="w-full mt-2 text-xs font-medium text-gray-400 active:text-gray-200 py-1.5 flex items-center justify-center gap-1.5"
-        >
+        <button onClick={() => setShowHistory(v => !v)}
+          className="w-full mt-2 text-xs font-medium text-gray-400 active:text-gray-200 py-1.5 flex items-center justify-center gap-1.5">
           <span>📋</span>
           <span>{showHistory ? 'Ocultar historial' : `Ver historial (${totalTx})`}</span>
           <span>{showHistory ? '▲' : '▼'}</span>
@@ -175,13 +137,11 @@ function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveTok
         <TransactionHistory
           transacciones={transacciones}
           precioPromedio={token.precioPromedio}
-          onUpdate={onUpdate}
-          onDelete={onDelete}
-          symbol={token.symbol}
+          onUpdate={onUpdate} onDelete={onDelete} symbol={token.symbol}
         />
       )}
 
-      {/* Botones de acción / Formulario */}
+      {/* Botones de acción */}
       {formMode === null ? (
         <div className="flex gap-2 mt-3">
           <button onClick={() => openForm('compra')}
@@ -201,18 +161,16 @@ function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveTok
         </div>
       ) : (
         <form onSubmit={submit} className="mt-3 space-y-2">
-          <p className={`text-xs font-semibold uppercase tracking-wide ${
-            formMode === 'compra' ? 'text-profit' : 'text-loss'
-          }`}>
+          <p className={`text-xs font-semibold uppercase tracking-wide ${formMode === 'compra' ? 'text-profit' : 'text-loss'}`}>
             {formMode === 'compra' ? '▲ Registrar compra' : '▼ Registrar venta'}
           </p>
           <input type="date" className="field py-2 text-sm"
             defaultValue={new Date().toISOString().slice(0, 10)} />
           <div className="grid grid-cols-2 gap-2">
             <input type="number" inputMode="decimal" className="field py-2" placeholder="Cantidad"
-              value={cantidad} onChange={(e) => setCantidad(e.target.value)} autoFocus />
+              value={cantidad} onChange={e => setCantidad(e.target.value)} autoFocus />
             <input type="number" inputMode="decimal" className="field py-2" placeholder="Precio"
-              value={precio} onChange={(e) => setPrecio(e.target.value)} />
+              value={precio} onChange={e => setPrecio(e.target.value)} />
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={() => setFormMode(null)}
@@ -220,11 +178,7 @@ function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveTok
               Cancelar
             </button>
             <button type="submit"
-              className={`flex-1 py-2 rounded-xl text-sm font-bold ${
-                formMode === 'compra'
-                  ? 'bg-profit/20 text-profit border border-profit/40'
-                  : 'bg-loss/20 text-loss border border-loss/40'
-              }`}>
+              className={`flex-1 py-2 rounded-xl text-sm font-bold ${formMode === 'compra' ? 'bg-profit/20 text-profit border border-profit/40' : 'bg-loss/20 text-loss border border-loss/40'}`}>
               Guardar {formMode}
             </button>
           </div>
@@ -233,28 +187,22 @@ function TurboTokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveTok
 
       {/* Mover a Cosecha */}
       {formMode === null && (
-        <button
-          onClick={() => setConfirmMover(true)}
-          className="w-full mt-2 py-1.5 rounded-lg border border-profit/30 text-profit/70 text-xs font-medium active:scale-[0.99]"
-        >
+        <button onClick={() => setConfirmMover(true)}
+          className="w-full mt-2 py-1.5 rounded-lg border border-profit/30 text-profit/70 text-xs font-medium active:scale-[0.99]">
           🌱 Mover a La Cosecha
         </button>
       )}
 
       <ConfirmDialog open={confirmClear} title={`¿Limpiar historial de ${token.symbol}?`}
-        message="Se borran TODAS las transacciones (compras y ventas)."
-        confirmText="Sí, limpiar"
+        message="Se borran TODAS las transacciones." confirmText="Sí, limpiar"
         onConfirm={() => { onClear(token.symbol); setConfirmClear(false) }}
         onCancel={() => setConfirmClear(false)} />
-
       <ConfirmDialog open={confirmRemove} title={`¿Eliminar ${token.symbol} del Turbo?`}
-        message="Se eliminará el token y todas sus transacciones."
-        confirmText="Sí, eliminar"
+        message="Se eliminará el token y todas sus transacciones." confirmText="Sí, eliminar"
         onConfirm={() => { onRemoveToken(token.symbol); setConfirmRemove(false) }}
         onCancel={() => setConfirmRemove(false)} />
-
       <ConfirmDialog open={confirmMover} title={`¿Mover ${token.symbol} a La Cosecha?`}
-        message="El token y todas sus transacciones se trasladan a Cosecha. No se pierde ningún dato."
+        message="El token y sus transacciones se trasladan a Cosecha. No se pierde ningún dato."
         confirmText="Sí, mover"
         onConfirm={() => { onMover(token.symbol); setConfirmMover(false) }}
         onCancel={() => setConfirmMover(false)} />
@@ -268,37 +216,35 @@ export default function TurboCiclo() {
     turbo_addToken, turbo_removeToken,
     turbo_addCompra, turbo_updateCompra,
     turbo_deleteCompra, turbo_clearCompras,
-    turbo_setPrecioManual,
-    moverACosecha,
+    turbo_setPrecioManual, moverACosecha,
   } = usePortfolio()
 
-  const [showAddForm, setShowAddForm]       = useState(false)
-  const [showCalculator, setShowCalculator] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false)
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <header>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">⚡</span>
             <h1 className="text-xl font-bold">El Turbo-Ciclo</h1>
           </div>
-          <button
-            onClick={() => setShowAddForm((v) => !v)}
-            className="h-9 w-9 rounded-xl bg-blue-500/20 text-blue-300 font-bold text-xl flex items-center justify-center active:scale-95"
-          >
+          <button onClick={() => setShowAddForm(v => !v)}
+            className="h-9 w-9 rounded-xl bg-blue-500/20 text-blue-300 font-bold text-xl flex items-center justify-center active:scale-95">
             {showAddForm ? '✕' : '+'}
           </button>
         </div>
-        <p className="text-sm text-gray-500 mt-1">Corto plazo · Captura ganancias del 2–4% por ciclo.</p>
+        <p className="text-sm text-gray-500 mt-1">
+          Corto plazo · Registro rápido de operaciones.{' '}
+          <span className="text-blue-400">Usa el 🎯 Asistente para calcular TP/SL.</span>
+        </p>
       </header>
 
       {showAddForm && (
         <AddTokenForm
-          onAdd={(token) => { turbo_addToken(token); setShowAddForm(false) }}
+          onAdd={token => { turbo_addToken(token); setShowAddForm(false) }}
           onCancel={() => setShowAddForm(false)}
-          excludeSymbols={turbo.map((t) => t.symbol)}
+          excludeSymbols={turbo.map(t => t.symbol)}
         />
       )}
 
@@ -319,53 +265,17 @@ export default function TurboCiclo() {
         </div>
       ) : (
         <div className="space-y-3">
-          {turbo.map((t) => (
+          {turbo.map(t => (
             <TurboTokenCard
-              key={t.symbol}
-              token={t}
-              onAdd={turbo_addCompra}
-              onClear={turbo_clearCompras}
-              onUpdate={turbo_updateCompra}
-              onDelete={turbo_deleteCompra}
+              key={t.symbol} token={t}
+              onAdd={turbo_addCompra} onClear={turbo_clearCompras}
+              onUpdate={turbo_updateCompra} onDelete={turbo_deleteCompra}
               onRemoveToken={turbo_removeToken}
-              onSetPrecio={turbo_setPrecioManual}
-              onMover={moverACosecha}
+              onSetPrecio={turbo_setPrecioManual} onMover={moverACosecha}
             />
           ))}
         </div>
       )}
-
-      {/* Asistente de operación */}
-      <section>
-        <button
-          onClick={() => setShowCalculator((v) => !v)}
-          className="w-full card p-4 flex items-center justify-between active:scale-[0.99] transition-transform"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-xl">🎯</span>
-            <div className="text-left">
-              <p className="font-semibold">Asistente de operación</p>
-              <p className="text-xs text-gray-500">Calcula TP/SL manualmente para cualquier par</p>
-            </div>
-          </div>
-          <span className="text-gray-400 text-lg">{showCalculator ? '▲' : '▼'}</span>
-        </button>
-        {showCalculator && (
-          <div className="mt-2">
-            <TurboCalculator />
-          </div>
-        )}
-      </section>
-
-      {/* Indicadores de decisión */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
-          Indicadores de decisión
-        </h2>
-        <FearGreedWidget />
-        <LiquidationHeatmap />
-        <AINews />
-      </section>
     </div>
   )
 }

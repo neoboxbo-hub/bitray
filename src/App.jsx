@@ -4,6 +4,7 @@ import Dashboard from './modules/dashboard/Dashboard'
 import CofreInmortal from './modules/cofre/CofreInmortal'
 import CosechaFeliz from './modules/cosecha/CosechaFeliz'
 import TurboCiclo from './modules/turbo/TurboCiclo'
+import AsistenteOperacion from './modules/asistente/AsistenteOperacion'
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="cofre" element={<CofreInmortal />} />
         <Route path="cosecha" element={<CosechaFeliz />} />
         <Route path="turbo" element={<TurboCiclo />} />
+        <Route path="asistente" element={<AsistenteOperacion />} />
       </Route>
     </Routes>
   )

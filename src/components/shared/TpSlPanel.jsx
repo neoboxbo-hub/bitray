@@ -5,9 +5,11 @@ import { TRADING_FEE_PCT } from '../../data/mockData'
 // Panel de Take Profits y Stop Limit reutilizable.
 // Recibe: precioEntrada (precio promedio), capital (costo total de la posición),
 // precioActual (para mostrar referencia), symbol.
-export default function TpSlPanel({ precioEntrada, capital, precioActual, symbol }) {
+// forceOpen=true lo usa el Asistente para mostrar el panel siempre expandido.
+export default function TpSlPanel({ precioEntrada, capital, precioActual, symbol, forceOpen = false }) {
   const [riesgoPct, setRiesgoPct] = useState('1.5')
   const [open, setOpen] = useState(false)
+  const isOpen = forceOpen || open
 
   const r = useMemo(() => {
     const pc = precioEntrada || 0
@@ -25,16 +27,18 @@ export default function TpSlPanel({ precioEntrada, capital, precioActual, symbol
 
   return (
     <div className="mt-2 border-t border-ink-600/60 pt-2">
-      {/* Toggle */}
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between text-xs font-semibold text-blue-400 active:text-blue-300 py-1"
-      >
-        <span>⚡ Ver TP / Stop Loss</span>
-        <span>{open ? '▲' : '▼'}</span>
-      </button>
+      {/* Toggle (oculto en modo forceOpen) */}
+      {!forceOpen && (
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="w-full flex items-center justify-between text-xs font-semibold text-blue-400 active:text-blue-300 py-1"
+        >
+          <span>⚡ Ver TP / Stop Loss</span>
+          <span>{open ? '▲' : '▼'}</span>
+        </button>
+      )}
 
-      {open && valido && (
+      {isOpen && valido && (
         <div className="mt-2 space-y-3">
           {/* Riesgo selector */}
           <div>
