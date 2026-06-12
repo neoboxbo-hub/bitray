@@ -1,8 +1,10 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import {
@@ -13,9 +15,11 @@ import {
 } from '../data/mockData'
 import { calcCofre, calcToken } from '../utils/calculations'
 import { fetchPrices } from '../services/prices'
+import { loadAllFromSupabase, saveToSupabase } from '../services/supabase'
 
 const PortfolioContext = createContext(null)
-const REFRESH_MS = 15000
+const REFRESH_MS  = 15000
+const DEBOUNCE_MS = 1500   // espera antes de guardar en Supabase
 
 const load = (key, fallback) => {
   try {
@@ -24,19 +28,14 @@ const load = (key, fallback) => {
   } catch { return fallback }
 }
 
-// Fábrica de acciones CRUD reutilizable para colecciones de tokens.
-// Evita duplicar la misma lógica para Cosecha y Turbo.
 function makeTokenActions(setter) {
   const addToken = (token) =>
     setter((prev) =>
-      prev.find((t) => t.symbol === token.symbol)
-        ? prev // no duplicar
+      prev.find((t) => t.symbol === token.symbol) ? prev
         : [...prev, { ...token, compras: [] }],
     )
-
   const removeToken = (symbol) =>
     setter((prev) => prev.filter((t) => t.symbol !== symbol))
-
   const addCompra = (symbol, compra) =>
     setter((prev) =>
       prev.map((t) =>
@@ -45,7 +44,6 @@ function makeTokenActions(setter) {
           : t,
       ),
     )
-
   const updateCompra = (symbol, id, patch) =>
     setter((prev) =>
       prev.map((t) =>
@@ -54,7 +52,6 @@ function makeTokenActions(setter) {
           : t,
       ),
     )
-
   const deleteCompra = (symbol, id) =>
     setter((prev) =>
       prev.map((t) =>
@@ -63,14 +60,10 @@ function makeTokenActions(setter) {
           : t,
       ),
     )
-
   const clearCompras = (symbol) =>
     setter((prev) =>
       prev.map((t) => (t.symbol === symbol ? { ...t, compras: [] } : t)),
     )
-
-  // Permite fijar un precio manual que sobreescribe el precio de Binance.
-  // Pasar null quita la sobreescritura y vuelve al precio en vivo.
   const setPrecioManual = (symbol, precio) =>
     setter((prev) =>
       prev.map((t) =>
@@ -79,40 +72,98 @@ function makeTokenActions(setter) {
           : t,
       ),
     )
-
   return { addToken, removeToken, addCompra, updateCompra, deleteCompra, clearCompras, setPrecioManual }
 }
 
 export function PortfolioProvider({ children }) {
-  const [prices, setPrices] = useState(mockPrices)
-  const [changes, setChanges] = useState({})
+  const [prices, setPrices]             = useState(mockPrices)
+  const [changes, setChanges]           = useState({})
   const [pricesStatus, setPricesStatus] = useState('mock')
   const [pricesUpdated, setPricesUpdated] = useState(null)
 
-  const [cofreCompras, setCofreCompras] = useState(() =>
-    load('bitray.cofre', mockCofreCompras),
-  )
-  const [cofreVentas, setCofreVentas] = useState(() =>
-    load('bitray.cofre.ventas', []),
-  )
-  const [cosechaTokens, setCosechaTokens] = useState(() =>
-    load('bitray.cosecha', mockCosechaTokens),
-  )
-  const [turboTokens, setTurboTokens] = useState(() =>
-    load('bitray.turbo', mockTurboTokens),
-  )
+  // syncStatus: 'loading' | 'synced' | 'local' | 'error'
+  const [syncStatus, setSyncStatus] = useState('loading')
+  const [syncedAt, setSyncedAt]     = useState(null)
 
-  // Precios en vivo de Binance (refresco cada 15s, fallback a mock).
+  const [cofreCompras, setCofreCompras]   = useState(() => load('bitray.cofre', mockCofreCompras))
+  const [cofreVentas, setCofreVentas]     = useState(() => load('bitray.cofre.ventas', []))
+  const [cosechaTokens, setCosechaTokens] = useState(() => load('bitray.cosecha', mockCosechaTokens))
+  const [turboTokens, setTurboTokens]     = useState(() => load('bitray.turbo', mockTurboTokens))
+
+  // ── Carga inicial desde Supabase ──────────────────────────────────────────
+  const initialLoadDone = useRef(false)
+
+  useEffect(() => {
+    if (initialLoadDone.current) return
+    initialLoadDone.current = true
+
+    loadAllFromSupabase()
+      .then((remote) => {
+        // Para cada clave, Supabase gana si tiene datos
+        if (remote.cofre_compras?.value)   { setCofreCompras(remote.cofre_compras.value);   localStorage.setItem('bitray.cofre',        JSON.stringify(remote.cofre_compras.value)) }
+        if (remote.cofre_ventas?.value)    { setCofreVentas(remote.cofre_ventas.value);     localStorage.setItem('bitray.cofre.ventas', JSON.stringify(remote.cofre_ventas.value)) }
+        if (remote.cosecha_tokens?.value)  { setCosechaTokens(remote.cosecha_tokens.value); localStorage.setItem('bitray.cosecha',      JSON.stringify(remote.cosecha_tokens.value)) }
+        if (remote.turbo_tokens?.value)    { setTurboTokens(remote.turbo_tokens.value);     localStorage.setItem('bitray.turbo',        JSON.stringify(remote.turbo_tokens.value)) }
+        setSyncStatus('synced')
+        setSyncedAt(new Date())
+      })
+      .catch((e) => {
+        console.warn('Supabase carga inicial falló, usando localStorage:', e.message)
+        setSyncStatus('local')
+      })
+  }, [])
+
+  // ── Guardado en Supabase con debounce ─────────────────────────────────────
+  const timers = useRef({})
+
+  const debouncedSave = useCallback((key, value) => {
+    clearTimeout(timers.current[key])
+    timers.current[key] = setTimeout(async () => {
+      try {
+        await saveToSupabase(key, value)
+        setSyncStatus('synced')
+        setSyncedAt(new Date())
+      } catch (e) {
+        console.warn('Supabase save falló:', e.message)
+        setSyncStatus('local')
+      }
+    }, DEBOUNCE_MS)
+  }, [])
+
+  // ── Persistencia local + sync remoto ──────────────────────────────────────
+  useEffect(() => {
+    localStorage.setItem('bitray.cofre', JSON.stringify(cofreCompras))
+    if (!initialLoadDone.current) return
+    debouncedSave('cofre_compras', cofreCompras)
+  }, [cofreCompras, debouncedSave])
+
+  useEffect(() => {
+    localStorage.setItem('bitray.cofre.ventas', JSON.stringify(cofreVentas))
+    if (!initialLoadDone.current) return
+    debouncedSave('cofre_ventas', cofreVentas)
+  }, [cofreVentas, debouncedSave])
+
+  useEffect(() => {
+    localStorage.setItem('bitray.cosecha', JSON.stringify(cosechaTokens))
+    if (!initialLoadDone.current) return
+    debouncedSave('cosecha_tokens', cosechaTokens)
+  }, [cosechaTokens, debouncedSave])
+
+  useEffect(() => {
+    localStorage.setItem('bitray.turbo', JSON.stringify(turboTokens))
+    if (!initialLoadDone.current) return
+    debouncedSave('turbo_tokens', turboTokens)
+  }, [turboTokens, debouncedSave])
+
+  // ── Precios en vivo Binance ───────────────────────────────────────────────
   useEffect(() => {
     let active = true
     const tick = async () => {
       try {
         const { prices: p, changes: c } = await fetchPrices()
         if (!active) return
-        setPrices(p)
-        setChanges(c)
-        setPricesStatus('live')
-        setPricesUpdated(new Date())
+        setPrices(p); setChanges(c)
+        setPricesStatus('live'); setPricesUpdated(new Date())
       } catch (e) {
         if (active) setPricesStatus((s) => (s === 'live' ? 'live' : 'error'))
         console.warn('Binance no disponible:', e.message)
@@ -123,40 +174,23 @@ export function PortfolioProvider({ children }) {
     return () => { active = false; clearInterval(id) }
   }, [])
 
-  // Persistencia automática.
-  useEffect(() => { localStorage.setItem('bitray.cofre', JSON.stringify(cofreCompras)) }, [cofreCompras])
-  useEffect(() => { localStorage.setItem('bitray.cofre.ventas', JSON.stringify(cofreVentas)) }, [cofreVentas])
-  useEffect(() => { localStorage.setItem('bitray.cosecha', JSON.stringify(cosechaTokens)) }, [cosechaTokens])
-  useEffect(() => { localStorage.setItem('bitray.turbo', JSON.stringify(turboTokens)) }, [turboTokens])
+  // ── Acciones Cofre ────────────────────────────────────────────────────────
+  const addCompraCofre    = (compra)   => setCofreCompras((prev) => [...prev, { ...compra, id: Date.now() }])
+  const updateCompraCofre = (id, patch) => setCofreCompras((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+  const deleteCompraCofre = (id)       => setCofreCompras((prev) => prev.filter((c) => c.id !== id))
+  const clearCofre        = ()         => setCofreCompras([])
+  const addVentaCofre     = (venta)    => setCofreVentas((prev) => [...prev, { ...venta, id: Date.now() }])
+  const deleteVentaCofre  = (id)       => setCofreVentas((prev) => prev.filter((v) => v.id !== id))
 
-  // --- Acciones Cofre ---
-  const addCompraCofre = (compra) =>
-    setCofreCompras((prev) => [...prev, { ...compra, id: Date.now() }])
-  const updateCompraCofre = (id, patch) =>
-    setCofreCompras((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)))
-  const deleteCompraCofre = (id) =>
-    setCofreCompras((prev) => prev.filter((c) => c.id !== id))
-  const clearCofre = () => setCofreCompras([])
-
-  const addVentaCofre = (venta) =>
-    setCofreVentas((prev) => [...prev, { ...venta, id: Date.now() }])
-  const deleteVentaCofre = (id) =>
-    setCofreVentas((prev) => prev.filter((v) => v.id !== id))
-
-  // --- Acciones Cosecha ---
+  // ── Acciones Cosecha / Turbo ──────────────────────────────────────────────
   const cosechaActions = useMemo(() => makeTokenActions(setCosechaTokens), [])
+  const turboActions   = useMemo(() => makeTokenActions(setTurboTokens), [])
 
-  // --- Acciones Turbo ---
-  const turboActions = useMemo(() => makeTokenActions(setTurboTokens), [])
-
-  // Mueve un token completo (con compras) de Cosecha → Turbo o viceversa.
   const moverAturbo = (symbol) => {
     setCosechaTokens((prev) => {
       const token = prev.find((t) => t.symbol === symbol)
       if (!token) return prev
-      setTurboTokens((tp) =>
-        tp.find((t) => t.symbol === symbol) ? tp : [...tp, token],
-      )
+      setTurboTokens((tp) => tp.find((t) => t.symbol === symbol) ? tp : [...tp, token])
       return prev.filter((t) => t.symbol !== symbol)
     })
   }
@@ -165,14 +199,12 @@ export function PortfolioProvider({ children }) {
     setTurboTokens((prev) => {
       const token = prev.find((t) => t.symbol === symbol)
       if (!token) return prev
-      setCosechaTokens((cp) =>
-        cp.find((t) => t.symbol === symbol) ? cp : [...cp, token],
-      )
+      setCosechaTokens((cp) => cp.find((t) => t.symbol === symbol) ? cp : [...cp, token])
       return prev.filter((t) => t.symbol !== symbol)
     })
   }
 
-  // --- Derivados ---
+  // ── Derivados ─────────────────────────────────────────────────────────────
   const cofre = useMemo(
     () => calcCofre(cofreCompras, prices.BTC, cofreVentas),
     [cofreCompras, prices.BTC, cofreVentas],
@@ -198,40 +230,30 @@ export function PortfolioProvider({ children }) {
   const turboValor   = turbo.reduce((s, t) => s + t.valorActual, 0)
   const balanceTotal = cofre.valorActual + cosechaValor + turboValor
 
-  // PnL 24h estimado del portafolio completo.
   const pnl24h = useMemo(() => {
-    const calcTokenPnl24 = (tokens, computed) =>
+    const calcTokenPnl24 = (computed) =>
       computed.reduce((sum, t) => {
         const ch = changes[t.symbol]?.h24
         if (!ch || !t.valorActual) return sum
-        const val24agoEst = t.valorActual / (1 + ch / 100)
-        return sum + (t.valorActual - val24agoEst)
+        return sum + (t.valorActual - t.valorActual / (1 + ch / 100))
       }, 0)
-
     const cofreCh = changes.BTC?.h24
-    const cofrePnl = cofreCh
-      ? cofre.valorActual - cofre.valorActual / (1 + cofreCh / 100)
-      : 0
-
-    return cofrePnl + calcTokenPnl24(cosechaTokens, cosecha) + calcTokenPnl24(turboTokens, turbo)
-  }, [changes, cofre.valorActual, cosecha, turbo, cosechaTokens, turboTokens])
+    const cofrePnl = cofreCh ? cofre.valorActual - cofre.valorActual / (1 + cofreCh / 100) : 0
+    return cofrePnl + calcTokenPnl24(cosecha) + calcTokenPnl24(turbo)
+  }, [changes, cofre.valorActual, cosecha, turbo])
 
   const value = {
     prices, changes, pricesStatus, pricesUpdated,
-    // Cofre
+    syncStatus, syncedAt,
     cofre, cofreCompras, addCompraCofre, updateCompraCofre, deleteCompraCofre, clearCofre,
     cofreVentas, addVentaCofre, deleteVentaCofre,
-    // Cosecha
     cosecha, cosechaValor, ...Object.fromEntries(
       Object.entries(cosechaActions).map(([k, v]) => [`cosecha_${k}`, v])
     ),
-    // Turbo
     turbo, turboValor, ...Object.fromEntries(
       Object.entries(turboActions).map(([k, v]) => [`turbo_${k}`, v])
     ),
-    // Totales
     balanceTotal, pnl24h,
-    // Mover tokens entre módulos
     moverAturbo, moverACosecha,
   }
 
