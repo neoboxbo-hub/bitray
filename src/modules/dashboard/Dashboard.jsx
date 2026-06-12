@@ -3,6 +3,7 @@ import { usePortfolio } from '../../context/PortfolioContext'
 import { fmtUsd, fmtPct } from '../../utils/calculations'
 import { mockFearGreed } from '../../data/mockData'
 import MarketTable from './MarketTable'
+import DataSync from '../../components/shared/DataSync'
 
 export default function Dashboard() {
   const {
@@ -137,6 +138,9 @@ export default function Dashboard() {
 
       {/* Tabla de mercado con todos los tokens de tu lista */}
       <MarketTable />
+
+      {/* Sincronizar datos entre dispositivos */}
+      <DataSync />
     </div>
   )
 }
