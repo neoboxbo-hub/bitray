@@ -7,7 +7,7 @@ import MarketTable from './MarketTable'
 export default function Dashboard() {
   const {
     balanceTotal, cofre, cosecha, cosechaValor,
-    turboValor, pnl24h,
+    turbo, turboValor, pnl24h,
     pricesStatus, pricesUpdated,
   } = usePortfolio()
 
@@ -17,6 +17,14 @@ export default function Dashboard() {
           cosecha.reduce((s, t) => s + t.costo, 0)) *
         100
       : 0
+
+  // Total invertido en todas las estrategias
+  const totalInvertido =
+    cofre.usdInvertido +
+    cosecha.reduce((s, t) => s + t.costo, 0) +
+    turbo.reduce((s, t) => s + t.costo, 0)
+
+  const pnlTotal = balanceTotal - totalInvertido
 
   const fg = mockFearGreed
   const fearAlert = fg.value <= 25 // Miedo extremo → sugerir compra en el Cofre
@@ -39,17 +47,37 @@ export default function Dashboard() {
         <p className="text-xs uppercase tracking-wide text-gray-400">
           Balance total estimado
         </p>
+
+        {/* Invertido */}
+        {totalInvertido > 0 && (
+          <p className="text-xs text-gray-500 tabular-nums mt-1">
+            Invertido: <span className="text-gray-300 font-medium">{fmtUsd(totalInvertido)}</span>
+          </p>
+        )}
+
         <p className="text-4xl font-extrabold mt-1 tabular-nums">
           {fmtUsd(balanceTotal)}
         </p>
 
+        {/* PnL total (balance vs invertido) */}
+        {totalInvertido > 0 && (
+          <div className="flex items-center gap-2 mt-1">
+            <span className={`text-sm font-semibold tabular-nums ${pnlTotal >= 0 ? 'text-profit' : 'text-loss'}`}>
+              {pnlTotal >= 0 ? '+' : ''}{fmtUsd(pnlTotal)}
+            </span>
+            <span className={`chip text-xs ${pnlTotal >= 0 ? 'bg-profit/15 text-profit' : 'bg-loss/15 text-loss'}`}>
+              {pnlTotal >= 0 ? '+' : ''}{totalInvertido > 0 ? ((pnlTotal / totalInvertido) * 100).toFixed(2) : '0.00'}%
+            </span>
+          </div>
+        )}
+
         {/* PnL 24h */}
         {pnl24h !== 0 && (
-          <div className="flex items-center gap-2 mt-2">
-            <span className={`text-sm font-semibold tabular-nums ${pnl24h >= 0 ? 'text-profit' : 'text-loss'}`}>
+          <div className="flex items-center gap-2 mt-1">
+            <span className={`text-xs tabular-nums ${pnl24h >= 0 ? 'text-profit' : 'text-loss'}`}>
               {pnl24h >= 0 ? '+' : ''}{fmtUsd(pnl24h)} hoy
             </span>
-            <span className={`chip text-xs ${pnl24h >= 0 ? 'bg-profit/15 text-profit' : 'bg-loss/15 text-loss'}`}>
+            <span className={`chip text-[10px] ${pnl24h >= 0 ? 'bg-profit/15 text-profit' : 'bg-loss/15 text-loss'}`}>
               24h
             </span>
           </div>
