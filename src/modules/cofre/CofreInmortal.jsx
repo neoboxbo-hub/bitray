@@ -1,7 +1,22 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { fmtUsd, fmtNum, fmtPct } from '../../utils/calculations'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
+
+const FRASES = [
+  'Cada satoshi es un voto de confianza en tu futuro. La paciencia de hoy construye la libertad de mañana.',
+  'El tiempo en el mercado siempre supera al intento de cronometrar el mercado. Acumula. Espera. Vence.',
+  'Bitcoin no te hace rico de la noche a la mañana. Te hace libre de por vida si tienes disciplina.',
+  'Los que vendieron en cada corrección lamentan haberlo hecho. Los que aguantaron, celebran. Sé de los que aguantan.',
+  'Tu Cofre no es solo dinero. Es el legado que le dejas a tu familia. No lo toques. Deja que crezca.',
+]
+
+const BtcLogo = () => (
+  <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <circle cx="32" cy="32" r="32" fill="#F7931A"/>
+    <path d="M46.1 28.5c.6-4.2-2.6-6.5-7-8l1.4-5.8-3.5-.9-1.4 5.6c-.9-.2-1.8-.5-2.8-.7l1.4-5.7-3.5-.9-1.4 5.8c-.8-.2-1.5-.4-2.2-.5l-4.8-1.2-.9 3.7s2.6.6 2.5.6c1.4.3 1.6 1.2 1.6 1.9l-1.6 6.5c.1 0 .2.1.4.1l-.4-.1-2.3 9.1c-.2.4-.6 1-1.6.8 0 .1-2.5-.6-2.5-.6l-1.7 4 4.6 1.1c.8.2 1.7.4 2.5.6l-1.5 5.9 3.5.9 1.4-5.8c.9.3 1.9.5 2.8.7L27 51.4l3.5.9 1.5-5.9c6 1.1 10.5.7 12.4-4.7 1.5-4.3-.1-6.8-3.2-8.4 2.3-.5 4-2 4.9-5.2v.4zm-8.7 12.2c-1.1 4.3-8.4 2-10.8 1.4l1.9-7.7c2.4.6 10.1 1.8 8.9 6.3zm1.1-12.3c-1 3.9-7.1 1.9-9.1 1.4l1.7-7c2 .5 8.4 1.4 7.4 5.6z" fill="white"/>
+  </svg>
+)
 
 export default function CofreInmortal() {
   const {
@@ -30,6 +45,7 @@ export default function CofreInmortal() {
   const [confirmDel, setConfirmDel]       = useState(null)
   const [confirmDelVenta, setConfirmDelVenta] = useState(null)
   const [showVentas, setShowVentas]       = useState(false)
+  const frase = useMemo(() => FRASES[Math.floor(Math.random() * FRASES.length)], [])
 
   const startEdit = (c) => {
     setEditId(c.id)
@@ -75,67 +91,80 @@ export default function CofreInmortal() {
         <p className="text-sm text-gray-500 mt-1">Largo plazo · Solo Bitcoin</p>
       </header>
 
-      {/* ── Tarjeta principal BTC ── */}
-      <section className="card p-5 bg-gradient-to-br from-brand/20 to-ink-800 space-y-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-lg">BTC</span>
-              <span className="chip bg-profit/15 text-profit text-[10px]">Núcleo</span>
-              <span className="chip bg-ink-600 text-gray-400 text-[10px]">Reserva de valor</span>
+      {/* ── Tarjeta principal BTC — diseño premium ── */}
+      {/* Borde degradado neón naranja/dorado */}
+      <div
+        className="rounded-2xl p-[2px]"
+        style={{ background: 'linear-gradient(135deg, #F7931A 0%, #FFD700 50%, #F7931A 100%)' }}
+      >
+        <section className="rounded-[14px] bg-ink-800 p-5 space-y-4"
+          style={{ background: 'linear-gradient(145deg, #1a1a2e 0%, #16213e 60%, #0f0f23 100%)' }}>
+
+          {/* Logo + datos superiores */}
+          <div className="flex items-start gap-4">
+            <div className="shrink-0 w-16 h-16 drop-shadow-lg">
+              <BtcLogo />
             </div>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Bitcoin · ₿ {fmtNum(cofre.btcAcumulado, 6)} acumulados
-            </p>
-          </div>
-          <div className="text-right">
-            {cofre.usdInvertido > 0 && (
-              <p className="text-[11px] text-gray-500 tabular-nums">
-                inv. {fmtUsd(cofre.usdInvertido)}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-extrabold text-xl tracking-tight" style={{ color: '#F7931A' }}>BTC</span>
+                <span className="chip text-[10px]" style={{ background: 'rgba(247,147,26,0.15)', color: '#F7931A' }}>Núcleo</span>
+                <span className="chip bg-ink-600 text-gray-400 text-[10px]">Reserva de valor</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-0.5">
+                ₿ {fmtNum(cofre.btcAcumulado, 6)} acumulados
               </p>
+            </div>
+          </div>
+
+          {/* Valor y PnL */}
+          <div className="text-center space-y-0.5">
+            {cofre.usdInvertido > 0 && (
+              <p className="text-xs text-gray-500 tabular-nums">Invertido: {fmtUsd(cofre.usdInvertido)}</p>
             )}
-            <p className="font-semibold tabular-nums text-lg">{fmtUsd(cofre.valorActual)}</p>
+            <p className="text-3xl font-extrabold tabular-nums"
+              style={{ textShadow: '0 0 20px rgba(247,147,26,0.3)' }}>
+              {fmtUsd(cofre.valorActual)}
+            </p>
             {cofre.btcAcumulado > 0 && (
-              <p className={`text-xs font-medium ${up ? 'text-profit' : 'text-loss'}`}>
+              <p className={`text-sm font-semibold ${up ? 'text-profit' : 'text-loss'}`}>
                 {fmtPct(cofre.pnlPct)}
               </p>
             )}
           </div>
-        </div>
 
-        {cofreCompras.length > 0 && (
-          <div className="grid grid-cols-2 gap-2 text-center">
-            <div className="bg-ink-800/70 rounded-lg py-2">
-              <p className="text-[10px] text-gray-500">Entrada (prom.)</p>
-              <p className="text-sm font-semibold tabular-nums">{fmtUsd(cofre.precioPromedio)}</p>
+          {/* Grid precios */}
+          {cofreCompras.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 text-center">
+              <div className="rounded-lg py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <p className="text-[10px] text-gray-500">Entrada (prom.)</p>
+                <p className="text-sm font-semibold tabular-nums">{fmtUsd(cofre.precioPromedio)}</p>
+              </div>
+              <div className="rounded-lg py-2" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <p className="text-[10px] text-gray-500">Precio actual</p>
+                <p className="text-sm font-semibold tabular-nums">{fmtUsd(prices.BTC)}</p>
+              </div>
             </div>
-            <div className="bg-ink-800/70 rounded-lg py-2">
-              <p className="text-[10px] text-gray-500">Precio actual</p>
-              <p className="text-sm font-semibold tabular-nums">{fmtUsd(prices.BTC)}</p>
-            </div>
-          </div>
-        )}
+          )}
 
-        {cofreVentas.length > 0 && (
-          <div className="bg-ink-800/70 rounded-lg px-3 py-2 flex justify-between items-center">
-            <p className="text-[11px] text-gray-500">USD recuperados (ventas)</p>
-            <p className="text-sm font-semibold tabular-nums text-profit">
-              +{fmtUsd(cofre.usdRecuperado)}
+          {cofreVentas.length > 0 && (
+            <div className="rounded-lg px-3 py-2 flex justify-between items-center"
+              style={{ background: 'rgba(255,255,255,0.04)' }}>
+              <p className="text-[11px] text-gray-500">USD recuperados</p>
+              <p className="text-sm font-semibold tabular-nums text-profit">+{fmtUsd(cofre.usdRecuperado)}</p>
+            </div>
+          )}
+
+          {/* Frase motivacional */}
+          <div className="border-t pt-3" style={{ borderColor: 'rgba(247,147,26,0.2)' }}>
+            <p className="text-xs text-center leading-relaxed" style={{ color: 'rgba(247,147,26,0.75)' }}>
+              ✦ {frase} ✦
             </p>
           </div>
-        )}
-      </section>
-
-      {/* ── Recordatorio ── */}
-      <div className="card p-4 border-brand/30 bg-brand/5 flex gap-3">
-        <span className="text-2xl">👨‍👩‍👧‍👦</span>
-        <p className="text-sm text-gray-300 leading-snug">
-          Esto no se vende. Cada satoshi es el futuro de tu familia.
-          La paciencia de hoy es la libertad de mañana.
-        </p>
+        </section>
       </div>
 
-      {/* ── Botones ── */}
+      {/* ── Acciones ── */}
       {!openCompra && !openVenta && (
         <div className="flex gap-2">
           <button onClick={() => setOpenCompra(true)}

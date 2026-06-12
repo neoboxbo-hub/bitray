@@ -1,9 +1,13 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { fmtUsd, fmtPct } from '../../utils/calculations'
 import { mockFearGreed } from '../../data/mockData'
 import MarketTable from './MarketTable'
 import DataSync from '../../components/shared/DataSync'
+
+const BITACORA_KEY = 'bitray.bitacora'
+const BITACORA_DEFAULT = 'BTC mantiene rango $103K–$108K. Dominancia en 62.4%. Mercado en zona de codicia moderada. Sin catalizadores macro esta semana. Atención al CPI del jueves.'
 
 export default function Dashboard() {
   const {
@@ -28,10 +32,64 @@ export default function Dashboard() {
   const pnlTotal = balanceTotal - totalInvertido
 
   const fg = mockFearGreed
-  const fearAlert = fg.value <= 25 // Miedo extremo → sugerir compra en el Cofre
+  const fearAlert = fg.value <= 25
+
+  const [bitacora, setBitacora] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(BITACORA_KEY)) || BITACORA_DEFAULT } catch { return BITACORA_DEFAULT }
+  })
+  const [bitacoraUpdated] = useState(() => {
+    try { return localStorage.getItem(BITACORA_KEY + '.ts') || null } catch { return null }
+  })
+  const [editingBitacora, setEditingBitacora] = useState(false)
+  const [bitacoraDraft, setBitacoraDraft] = useState(bitacora)
+
+  const saveBitacora = () => {
+    setBitacora(bitacoraDraft)
+    localStorage.setItem(BITACORA_KEY, JSON.stringify(bitacoraDraft))
+    localStorage.setItem(BITACORA_KEY + '.ts', new Date().toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }))
+    setEditingBitacora(false)
+  }
 
   return (
     <div className="space-y-6">
+      {/* ── Bitácora de Mercado ── */}
+      <section className="card p-4 space-y-2 border-l-4 border-l-brand/60">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-base">📋</span>
+            <h2 className="text-sm font-bold uppercase tracking-wide text-gray-200">Bitácora de Mercado</h2>
+          </div>
+          <button
+            onClick={() => { setBitacoraDraft(bitacora); setEditingBitacora(v => !v) }}
+            className="text-[11px] text-gray-500 underline active:text-gray-300"
+          >
+            {editingBitacora ? 'Cancelar' : 'Editar'}
+          </button>
+        </div>
+
+        {editingBitacora ? (
+          <div className="space-y-2">
+            <textarea
+              className="field text-sm leading-relaxed resize-none"
+              rows={5}
+              value={bitacoraDraft}
+              onChange={e => setBitacoraDraft(e.target.value)}
+              autoFocus
+            />
+            <button onClick={saveBitacora}
+              className="w-full py-2.5 rounded-xl bg-brand/20 text-brand border border-brand/40 font-bold text-sm">
+              Guardar
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-300 leading-relaxed">{bitacora}</p>
+        )}
+
+        <p className="text-[10px] text-gray-600">
+          {bitacoraUpdated ? `Actualizado: ${bitacoraUpdated}` : 'Toca Editar para actualizar el resumen del mercado.'}
+        </p>
+      </section>
+
       {/* Header */}
       <header className="flex items-center justify-between">
         <div>
