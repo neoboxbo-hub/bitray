@@ -73,6 +73,11 @@ function TokenCard({ token, onAdd, onClear, onUpdate, onDelete, onRemoveToken, o
           </p>
         </div>
         <div className="text-right shrink-0">
+          {token.costo > 0 && (
+            <p className="text-[11px] text-gray-500 tabular-nums">
+              inv. {fmtUsd(token.costo)}
+            </p>
+          )}
           <p className="font-semibold tabular-nums">{fmtUsd(token.valorActual)}</p>
           <p className={`text-xs font-medium ${up ? 'text-profit' : 'text-loss'}`}>
             {fmtPct(token.pnlPct)}
