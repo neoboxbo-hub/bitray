@@ -9,14 +9,23 @@ import { usePortfolio } from './context/PortfolioContext'
 import { useAlertasPrecio } from './hooks/useAlertasPrecio'
 
 function AlertasWatcher() {
-  const { cosecha, turbo, prices } = usePortfolio()
+  const { cosecha, turbo, cofre, prices } = usePortfolio()
   const alertasOn = localStorage.getItem('bitray.alertas') !== 'off'
 
-  useAlertasPrecio({
-    tokens: alertasOn ? [...cosecha, ...turbo] : [],
-    prices,
-  })
+  // Tokens de Cosecha y Turbo ya traen precioPromedio y precioActual calculados
+  // Agregamos BTC del Cofre como token especial
+  const tokens = alertasOn ? [
+    ...cosecha,
+    ...turbo,
+    {
+      symbol: 'BTC',
+      nombre: 'Bitcoin',
+      precioPromedio: cofre.precioPromedio,
+      precioActual: prices.BTC ?? 0,
+    },
+  ] : []
 
+  useAlertasPrecio({ tokens })
   return null
 }
 

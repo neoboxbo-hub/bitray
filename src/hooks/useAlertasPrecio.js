@@ -1,68 +1,89 @@
 import { useEffect, useRef } from 'react'
 
-const UMBRAL_PCT  = 3        // % de cambio para disparar alerta
-const COOLDOWN_MS = 30 * 60 * 1000  // 30 min entre alertas del mismo token
+// Alertas inteligentes vs precio promedio de compra:
+// breakeven ±0.5%, +2%, +3%, +5%, -3% (riesgo)
 
-// Guarda precios de referencia al inicio de la sesión (se resetean al recargar)
-const BASELINE = {}   // { symbol: precio }
-const ALERTED  = {}   // { symbol: timestamp última alerta }
+const COOLDOWN_MS = 20 * 60 * 1000
+const ALERTED = {}
 
-function puedeAlertar(symbol) {
-  const last = ALERTED[symbol]
-  return !last || (Date.now() - last) > COOLDOWN_MS
+function puedeAlertar(symbol, nivel) {
+  const k = `${symbol}_${nivel}`
+  const last = ALERTED[k]
+  return !last || Date.now() - last > COOLDOWN_MS
 }
 
-function dispararNotificacion(symbol, nombre, pct, precioActual) {
+function marcarAlertado(symbol, nivel) {
+  ALERTED[`${symbol}_${nivel}`] = Date.now()
+}
+
+function fmtP(p) {
+  if (!p) return '—'
+  return p < 1 ? `$${p.toFixed(4)}` : `$${p.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+}
+
+function notif(titulo, cuerpo, urgente = false) {
   if (Notification.permission !== 'granted') return
-
-  const subida = pct > 0
-  const emoji  = subida ? '🚀' : '📉'
-  const signo  = subida ? '+' : ''
-  const precio = precioActual < 1
-    ? `$${precioActual.toFixed(4)}`
-    : `$${precioActual.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
-
-  new Notification(`${emoji} ${symbol} ${signo}${pct.toFixed(1)}%`, {
-    body: `${nombre} cotiza a ${precio}`,
-    icon: '/manifest.json',
-    tag:  symbol,
+  if (urgente && 'vibrate' in navigator) navigator.vibrate([300, 100, 300, 100, 300])
+  new Notification(titulo, {
+    body: cuerpo,
+    tag: titulo,
     renotify: true,
+    requireInteraction: urgente,
   })
-
-  ALERTED[symbol] = Date.now()
 }
 
-export function useAlertasPrecio({ tokens = [], prices = {} }) {
-  const initialized = useRef(false)
+function revisar({ symbol, nombre, precioPromedio, precioActual }) {
+  if (!precioPromedio || precioPromedio <= 0) return
+  if (!precioActual  || precioActual  <= 0) return
 
-  // Establece precios de referencia la primera vez que llegan precios reales
+  const pct = ((precioActual - precioPromedio) / precioPromedio) * 100
+  const nom = nombre || symbol
+
+  if (Math.abs(pct) <= 0.5 && puedeAlertar(symbol, 'be')) {
+    notif(`⚖️ ${symbol} tocó tu precio promedio`, `${fmtP(precioActual)} · Entrada: ${fmtP(precioPromedio)}`, true)
+    marcarAlertado(symbol, 'be')
+  }
+  if (pct >= 2 && pct < 3 && puedeAlertar(symbol, 'p2')) {
+    notif(`📈 ${symbol} +2% sobre tu entrada`, `${fmtP(precioActual)} · ${nom}`, false)
+    marcarAlertado(symbol, 'p2')
+  }
+  if (pct >= 3 && pct < 5 && puedeAlertar(symbol, 'p3')) {
+    notif(`🚀 ${symbol} +3% sobre tu entrada`, `${fmtP(precioActual)} · Considera tomar ganancias parciales`, true)
+    marcarAlertado(symbol, 'p3')
+  }
+  if (pct >= 5 && puedeAlertar(symbol, 'p5')) {
+    notif(`🔥 ${symbol} +5% sobre tu entrada`, `${fmtP(precioActual)} · ¡Tu TP puede estar cerca!`, true)
+    marcarAlertado(symbol, 'p5')
+  }
+  if (pct <= -3 && puedeAlertar(symbol, 'sl')) {
+    notif(`⚠️ ${symbol} -3% bajo tu entrada`, `${fmtP(precioActual)} · Revisa tu Stop Loss`, true)
+    marcarAlertado(symbol, 'sl')
+  }
+}
+
+export function useAlertasPrecio({ tokens = [] }) {
+  // Usar ref para detectar cambios reales de precio y no disparar en cada render
+  const prevPrices = useRef({})
+
   useEffect(() => {
-    if (initialized.current) return
-    if (Object.keys(prices).length === 0) return
-
-    tokens.forEach(({ symbol }) => {
-      const p = prices[symbol]
-      if (p && p > 0) BASELINE[symbol] = p
-    })
-
-    initialized.current = true
-  }, [prices, tokens])
-
-  // Revisa cambio vs baseline en cada actualización de precios
-  useEffect(() => {
-    if (!initialized.current) return
     if (Notification.permission !== 'granted') return
+    if (tokens.length === 0) return
 
-    tokens.forEach(({ symbol, nombre }) => {
-      const base   = BASELINE[symbol]
-      const actual = prices[symbol]
-      if (!base || !actual || actual <= 0) return
-
-      const pct = ((actual - base) / base) * 100
-
-      if (Math.abs(pct) >= UMBRAL_PCT && puedeAlertar(symbol)) {
-        dispararNotificacion(symbol, nombre || symbol, pct, actual)
+    // Solo revisar si algún precio cambió
+    let hayCAmbio = false
+    for (const t of tokens) {
+      if (prevPrices.current[t.symbol] !== t.precioActual) {
+        hayCAmbio = true
+        break
       }
-    })
-  }, [prices, tokens])
+    }
+    if (!hayCAmbio) return
+
+    tokens.forEach(revisar)
+
+    // Actualizar referencia
+    const next = {}
+    tokens.forEach(t => { next[t.symbol] = t.precioActual })
+    prevPrices.current = next
+  })
 }
