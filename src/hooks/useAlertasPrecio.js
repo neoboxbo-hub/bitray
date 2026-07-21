@@ -1,7 +1,5 @@
 import { useEffect, useRef } from 'react'
-
-// Alertas inteligentes vs precio promedio de compra:
-// breakeven ±0.5%, +2%, +3%, +5%, -3% (riesgo)
+import { sendTelegram, getTgConfig } from '../services/telegram'
 
 const COOLDOWN_MS = 20 * 60 * 1000
 const ALERTED = {}
@@ -21,15 +19,21 @@ function fmtP(p) {
   return p < 1 ? `$${p.toFixed(4)}` : `$${p.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
 }
 
-function notif(titulo, cuerpo, urgente = false) {
+function notifBrowser(titulo, cuerpo, urgente = false) {
   if (Notification.permission !== 'granted') return
   if (urgente && 'vibrate' in navigator) navigator.vibrate([300, 100, 300, 100, 300])
-  new Notification(titulo, {
-    body: cuerpo,
-    tag: titulo,
-    renotify: true,
-    requireInteraction: urgente,
-  })
+  new Notification(titulo, { body: cuerpo, tag: titulo, renotify: true, requireInteraction: urgente })
+}
+
+function notifTelegram(emoji, symbol, pct, precioActual, precioPromedio, mensaje) {
+  if (!getTgConfig()) return
+  const signo = pct >= 0 ? '+' : ''
+  const texto =
+    `${emoji} <b>${symbol} ${signo}${pct.toFixed(1)}%</b>\n` +
+    `💰 Precio actual: <b>${fmtP(precioActual)}</b>\n` +
+    `📌 Tu entrada: ${fmtP(precioPromedio)}\n` +
+    `${mensaje}`
+  sendTelegram(texto)
 }
 
 function revisar({ symbol, nombre, precioPromedio, precioActual }) {
@@ -37,51 +41,48 @@ function revisar({ symbol, nombre, precioPromedio, precioActual }) {
   if (!precioActual  || precioActual  <= 0) return
 
   const pct = ((precioActual - precioPromedio) / precioPromedio) * 100
-  const nom = nombre || symbol
 
   if (Math.abs(pct) <= 0.5 && puedeAlertar(symbol, 'be')) {
-    notif(`⚖️ ${symbol} tocó tu precio promedio`, `${fmtP(precioActual)} · Entrada: ${fmtP(precioPromedio)}`, true)
+    notifBrowser(`⚖️ ${symbol} tocó tu precio promedio`, `${fmtP(precioActual)} · Entrada: ${fmtP(precioPromedio)}`, true)
+    notifTelegram('⚖️', symbol, pct, precioActual, precioPromedio, '📊 Tocó tu precio de entrada (break-even)')
     marcarAlertado(symbol, 'be')
   }
   if (pct >= 2 && pct < 3 && puedeAlertar(symbol, 'p2')) {
-    notif(`📈 ${symbol} +2% sobre tu entrada`, `${fmtP(precioActual)} · ${nom}`, false)
+    notifBrowser(`📈 ${symbol} +2% sobre tu entrada`, `${fmtP(precioActual)}`, false)
+    notifTelegram('📈', symbol, pct, precioActual, precioPromedio, '💡 +2% sobre tu precio de entrada')
     marcarAlertado(symbol, 'p2')
   }
   if (pct >= 3 && pct < 5 && puedeAlertar(symbol, 'p3')) {
-    notif(`🚀 ${symbol} +3% sobre tu entrada`, `${fmtP(precioActual)} · Considera tomar ganancias parciales`, true)
+    notifBrowser(`🚀 ${symbol} +3% sobre tu entrada`, `${fmtP(precioActual)} · Considera tomar ganancias`, true)
+    notifTelegram('🚀', symbol, pct, precioActual, precioPromedio, '💡 Considera tomar ganancias parciales')
     marcarAlertado(symbol, 'p3')
   }
   if (pct >= 5 && puedeAlertar(symbol, 'p5')) {
-    notif(`🔥 ${symbol} +5% sobre tu entrada`, `${fmtP(precioActual)} · ¡Tu TP puede estar cerca!`, true)
+    notifBrowser(`🔥 ${symbol} +5% sobre tu entrada`, `${fmtP(precioActual)} · ¡TP cerca!`, true)
+    notifTelegram('🔥', symbol, pct, precioActual, precioPromedio, '🎯 ¡Tu Take Profit puede estar cerca!')
     marcarAlertado(symbol, 'p5')
   }
   if (pct <= -3 && puedeAlertar(symbol, 'sl')) {
-    notif(`⚠️ ${symbol} -3% bajo tu entrada`, `${fmtP(precioActual)} · Revisa tu Stop Loss`, true)
+    notifBrowser(`⚠️ ${symbol} -3% bajo tu entrada`, `${fmtP(precioActual)} · Revisa tu Stop Loss`, true)
+    notifTelegram('⚠️', symbol, pct, precioActual, precioPromedio, '🛡️ Revisa tu Stop Loss')
     marcarAlertado(symbol, 'sl')
   }
 }
 
 export function useAlertasPrecio({ tokens = [] }) {
-  // Usar ref para detectar cambios reales de precio y no disparar en cada render
   const prevPrices = useRef({})
 
   useEffect(() => {
-    if (Notification.permission !== 'granted') return
     if (tokens.length === 0) return
 
-    // Solo revisar si algún precio cambió
-    let hayCAmbio = false
+    let hayCambio = false
     for (const t of tokens) {
-      if (prevPrices.current[t.symbol] !== t.precioActual) {
-        hayCAmbio = true
-        break
-      }
+      if (prevPrices.current[t.symbol] !== t.precioActual) { hayCambio = true; break }
     }
-    if (!hayCAmbio) return
+    if (!hayCambio) return
 
     tokens.forEach(revisar)
 
-    // Actualizar referencia
     const next = {}
     tokens.forEach(t => { next[t.symbol] = t.precioActual })
     prevPrices.current = next
